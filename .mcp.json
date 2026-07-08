@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "scansci-pdf": {
+      "command": "scansci-pdf",
+      "args": ["run"]
+    }
+  }
+}

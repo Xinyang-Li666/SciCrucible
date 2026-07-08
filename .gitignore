@@ -1,0 +1,39 @@
+# PDF files (too large for git)
+raw/papers/
+raw/new-papers/
+
+# Manuscript PDFs
+manuscripts/*.pdf
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Search results (may contain API response data)
+raw/search-results/
+
+# Personal reference library (user-created content)
+raw/references.bib
+
+# LLM behavior rules cache
+.kiro/
+
+# Temporary scripts and cache
+scripts/__pycache__/
+*.tmp
+
+# Legacy CAS file (keep locally, do not upload)
+2025中科院分区表.xlsx
+
+# Personal knowledge base (user-created content)
+wiki/
+brainstorming/
+manuscripts/
+
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db

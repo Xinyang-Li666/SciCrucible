@@ -1,5 +1,5 @@
 ---
-description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖结构完整性、内容质量、文献质量等 9 个维度
+description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖结构完整性、内容质量、文献质量等 11 个维度
 ---
 
 # /forge-health — 知识库健康检查
@@ -135,6 +135,138 @@ print('Done.')
 - **保留**: `batches/`、`reports/`、`search-test.json` 不在此清理范围
 - **执行方式**: 自动执行，清理前列出待删文件，需用户确认后执行删除
 
+### 11. brainstorming 整理与提炼
+
+对 `brainstorming/` 做两件事：**归类整理**（科研/元记录二分，让核心产出清爽浮现）和 **价值提炼**（成熟科研思考 → wiki 概念页）。全程"列清单 → 用户确认 → 才动手"，绝不删原文。
+
+先运行机械统计脚本，获取每文件的量化指标：
+
+```bash
+PYTHONIOENCODING=utf-8 python -c "
+import sys
+from pathlib import Path
+sys.stdout.reconfigure(encoding='utf-8')
+base = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('.')
+bdir = base / 'brainstorming'
+wdir = base / 'wiki'
+if not bdir.is_dir():
+    print('目录为空，跳过'); sys.exit(0)
+EXCLUDE = {'todos.md', 'questions.md', 'INDEX.md'}
+files = []
+for f in sorted(bdir.glob('*.md')):
+    if f.name not in EXCLUDE:
+        files.append(('散落', f))
+for sub in ('research', 'ideas'):
+    sd = bdir / sub
+    if sd.is_dir():
+        for f in sorted(sd.glob('*.md')):
+            files.append((sub, f))
+corpus = ''
+for n in ('questions.md', 'todos.md'):
+    p = bdir / n
+    if p.is_file():
+        corpus += p.read_text(encoding='utf-8') + '\n'
+if wdir.is_dir():
+    for wf in sorted(wdir.rglob('*.md')):
+        corpus += wf.read_text(encoding='utf-8') + '\n'
+cstems = set()
+cdir = wdir / 'concepts'
+if cdir.is_dir():
+    cstems = {c.stem for c in cdir.glob('*.md')}
+print('区 | 行数 | 短段 | 引用 | 概念页 | 文件 | 预览')
+print('---|---|---|---|---|---|---')
+for zone, fp in files:
+    c = fp.read_text(encoding='utf-8')
+    lines = c.count('\n')
+    sp = sum(1 for p in c.split('\n\n') if 10 < len(p) < 80)
+    ref = '是' if fp.stem in corpus else '否'
+    con = '是' if fp.stem in cstems else '否'
+    pv = ''
+    for ln in c.splitlines():
+        s = ln.strip()
+        if s and not s.startswith('#'):
+            pv = s[:40]; break
+    print(f'{zone} | {lines} | {sp} | {ref} | {con} | {fp.name} | {pv}')
+"
+```
+
+脚本只算机械指标，语义判断（分类、"叙述充分/机制解释"）由 LLM 完成，与维度 8 同构。
+
+**列含义**：
+| 列 | 含义 | LLM 用法 |
+|----|------|---------|
+| 区 | `散落`(根目录，排除todos/questions/INDEX) / `research` / `ideas` | 定位分类对象 |
+| 行数 | 篇幅 | 辅助判"叙述充分" |
+| 短段 | 10-80 字符的段落数（提纲化信号） | 参考维度 8 判据 |
+| 引用 | 文件名 stem 是否出现在 questions/todos/wiki 全文中 | 支撑提炼分 15 |
+| 概念页 | `wiki/concepts/<stem>.md` 是否存在 | 决定动作：新建 / 并入 |
+| 文件 | 文件名 | — |
+| 预览 | 首个非空非标题行前 40 字 | 分类线索 |
+
+#### 归类规则
+
+根据脚本输出的"区"列和预览内容，将散落文件按性质二分：
+
+| 目标目录 | 收什么 | 判据信号 |
+|---------|--------|---------|
+| `meta/` | 框架**自身**开发/运维记录 | 改名、迁移、GitHub/GPL/License、bug/报告遗漏、推广文案、（针对工具的）安全审计 |
+| `research/` | 成形的**科研**思考（有具体材料/机制/数据） | 含科学对象 + 机制叙述 |
+| `ideas/` | 尚未成形的想法/工作流点子（**保留现有语义，不动**） | 计划、待展开的构想 |
+
+- `sessions/` 保留为 forge-think/forge-search 归档目标（当前为空）。
+- 根目录仅保留 `todos.md`、`questions.md`、`INDEX.md`（后由本维度生成）。
+
+#### 迁移流程
+
+1. **列迁移清单**：根据归类规则，列出每篇散落文件的建议目标目录，标注分类依据。
+2. **用户确认**：逐项请用户点头/否决/修改（`meta/` vs `research/` 有歧义时**先问再动**，不擅自归类）。
+3. **执行**：`mv` 到目标目录。拒绝项保持在原位。
+4. **生成 INDEX.md**（见下文）。
+
+#### INDEX.md 生成
+
+迁移完成后，在 `brainstorming/` 根生成 `INDEX.md` 导航表，按 `research/` → `ideas/` → `meta/` → `sessions/` 分区，每条含：
+
+- 文件名（链接）
+- **一句话摘要**：LLM 体检时现读各文件首段即时归纳——不要求文件带 frontmatter 摘要字段，**零改造成本**。
+- **是否已提炼**：若文件顶部已有 `✅ 已提炼 → [[概念页]]` 标记则写对应概念页，否则为空。
+
+INDEX.md 让核心产出可导航，不再是黑盒。每次运行 forge-health 时若 INDEX.md 缺失或距离上次更新 > 30 天，自动重建。
+
+#### 提炼进 wiki
+
+对 `research/` + 成熟的 `ideas/` 内容，识别已成熟者提炼为 wiki 概念页。`meta/` **永不参与提炼**。
+
+**Step 1 — 打分（提炼价值分，满分 100）**：逐篇计分。
+
+| 信号 | 分值 | 判定 |
+|------|------|------|
+| 叙述充分（非提纲，≥3 段连续叙述） | 35 | LLM 读原文 + 参考脚本"行数/短段" |
+| 含机制解释 | 35 | LLM 读原文 |
+| 被 questions/todos/其他页引用过 | 15 | 脚本"引用"列 |
+| 领域明确、可归入某专题组 | 15 | LLM 判定 |
+
+去重（脚本"概念页"列）为独立判断，不计分，仅决定动作：无同名概念页 → **新建**；已有 → **并入现有页**。
+
+**Step 2 — 阈值触发 + 方案卡**：
+
+- **提炼价值分 ≥ 70 → 触发"建议提炼"**，进入候选，按分降序排列。
+- **< 70 → 标记 `[待补充]`，不进候选**（仍列出，注明"未达提炼阈值 70，建议补足叙述/机制后再议"）。
+- 阈值 70 = 叙述充分(35) + 含机制解释(35) 两块概念页基石之和，缺一不足以成页。
+
+每个候选给一张方案卡：
+```
+建议概念页：<标题>   |   归属专题组：<Y>   |   动作：新建 / 并入 [[现有页]]   |   分：<score>
+提炼要点：3-5 条骨架
+```
+
+**Step 3 — 用户确认**：逐张点头 / 否决 / 修改。
+
+**Step 4 — 执行**（仅对确认项）：
+1. 生成 `wiki/concepts/<标题>.md` 草稿：中颗粒度、含机制解释、`[[双链]]` 互联。
+2. 原 brainstorming 文件顶部盖章：`> ✅ 已提炼 → [[概念页]]（YYYY-MM-DD）`，防重复提炼。
+3. 更新 `wiki/index.md`，挂到对应专题组。
+
 ## 修复原则
 
 - 断链：优先创建缺失页面（即使是占位符），而不是删除链接
@@ -142,3 +274,6 @@ print('Done.')
 - 过期内容：标记 `[待更新: YYYY-MM-DD]`，不删除原文
 - 提纲化页面：补充 3-5 句机制解释，保持中颗粒度
 - 缺失概念：按中颗粒度原则决定是归入已有页面还是新建
+- **brainstorming 分类**：`meta/` 与 `research/` 归属有歧义时**先问再动**，不擅自归类。
+- **brainstorming 提炼**：只新建 wiki 草稿、**绝不删原文**。`meta/` 目录下的框架日志**永不参与提炼**。
+- **brainstorming 迁移**：移动任何文件前**必列迁移清单待用户确认**，照搬维度10清理确认流程。

@@ -135,6 +135,76 @@ print('Done.')
 - **保留**: `batches/`、`reports/`、`search-test.json` 不在此清理范围
 - **执行方式**: 自动执行，清理前列出待删文件，需用户确认后执行删除
 
+### 11. brainstorming 整理与提炼
+
+对 `brainstorming/` 做两件事：**归类整理**（科研/元记录二分，让核心产出清爽浮现）和 **价值提炼**（成熟科研思考 → wiki 概念页）。全程"列清单 → 用户确认 → 才动手"，绝不删原文。
+
+先运行机械统计脚本，获取每文件的量化指标：
+
+```bash
+PYTHONIOENCODING=utf-8 python -c "
+import sys
+from pathlib import Path
+sys.stdout.reconfigure(encoding='utf-8')
+base = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('.')
+bdir = base / 'brainstorming'
+wdir = base / 'wiki'
+if not bdir.is_dir():
+    print('目录为空，跳过'); sys.exit(0)
+EXCLUDE = {'todos.md', 'questions.md', 'INDEX.md'}
+files = []
+for f in sorted(bdir.glob('*.md')):
+    if f.name not in EXCLUDE:
+        files.append(('散落', f))
+for sub in ('research', 'ideas'):
+    sd = bdir / sub
+    if sd.is_dir():
+        for f in sorted(sd.glob('*.md')):
+            files.append((sub, f))
+corpus = ''
+for n in ('questions.md', 'todos.md'):
+    p = bdir / n
+    if p.is_file():
+        corpus += p.read_text(encoding='utf-8') + '\n'
+if wdir.is_dir():
+    for wf in sorted(wdir.rglob('*.md')):
+        corpus += wf.read_text(encoding='utf-8') + '\n'
+cstems = set()
+cdir = wdir / 'concepts'
+if cdir.is_dir():
+    cstems = {c.stem for c in cdir.glob('*.md')}
+print('区 | 行数 | 短段 | 引用 | 概念页 | 文件 | 预览')
+print('---|---|---|---|---|---|---')
+for zone, fp in files:
+    c = fp.read_text(encoding='utf-8')
+    lines = c.count('\n')
+    sp = sum(1 for p in c.split('\n\n') if 10 < len(p) < 80)
+    ref = '是' if fp.stem in corpus else '否'
+    con = '是' if fp.stem in cstems else '否'
+    pv = ''
+    for ln in c.splitlines():
+        s = ln.strip()
+        if s and not s.startswith('#'):
+            pv = s[:40]; break
+    print(f'{zone} | {lines} | {sp} | {ref} | {con} | {fp.name} | {pv}')
+"
+```
+
+脚本只算机械指标，语义判断（分类、"叙述充分/机制解释"）由 LLM 完成，与维度 8 同构。
+
+**列含义**：
+| 列 | 含义 | LLM 用法 |
+|----|------|---------|
+| 区 | `散落`(根目录，排除todos/questions/INDEX) / `research` / `ideas` | 定位分类对象 |
+| 行数 | 篇幅 | 辅助判"叙述充分" |
+| 短段 | 10-80 字符的段落数（提纲化信号） | 参考维度 8 判据 |
+| 引用 | 文件名 stem 是否出现在 questions/todos/wiki 全文中 | 支撑提炼分 15 |
+| 概念页 | `wiki/concepts/<stem>.md` 是否存在 | 决定动作：新建 / 并入 |
+| 文件 | 文件名 | — |
+| 预览 | 首个非空非标题行前 40 字 | 分类线索 |
+
+（归类规则、INDEX 生成、提炼流水线见下文）
+
 ## 修复原则
 
 - 断链：优先创建缺失页面（即使是占位符），而不是删除链接

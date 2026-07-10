@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # forge-health.sh — 扫描 wiki/ 检测断链和孤立页面
 # 用法：./forge-health.sh
 

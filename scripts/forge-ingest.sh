@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # forge-ingest.sh — 提取 PDF 文本并输出到临时文件，供 LLM 编译
 # 用法:
 #   ./forge-ingest.sh             批量处理 new-papers/ 中所有 PDF

@@ -64,11 +64,12 @@ cp ~/Downloads/paper.pdf SciCrucible/raw/new-papers/
 # 在 Claude Code 中打开项目，输入：
 /forge-ingest
 
-# 知识库自动生长
-# - wiki/literature/   ← 文献笔记（组分-条件-性质-机制闭环）
-# - wiki/concepts/     ← 概念页（自动聚合，中颗粒度）
-# - wiki/index.md      ← 全局索引（自动更新）
-# - literature_index.json ← DOI 去重缓存（自动维护）
+# 知识库自动生长（按课题分层）
+# - wiki/<课题>/literature/ ← 文献笔记（组分-条件-性质-机制闭环）
+# - wiki/<课题>/concepts/   ← 概念页（自动聚合，中颗粒度）
+# - wiki/通用/              ← 跨课题共享的通用概念/方法（DFT/MD/热力学…）
+# - wiki/index.md           ← 全局索引（自动更新）
+# - literature_index.json   ← DOI 去重缓存（自动维护）
 ```
 
 ### 其他常用操作
@@ -137,13 +138,18 @@ SciCrucible/
 │   │   ├── reports/             ←     检索报告
 │   │   └── batches/             ←     批次状态
 │   └── references.bib           ←   全局 BibTeX 库（自动生成）
-├── wiki/                        ← 第 2 层：LLM 维护的结构化知识（运行时生成）
+├── wiki/                        ← 第 2 层：LLM 维护的结构化知识（运行时生成，按课题分层）
 │   ├── index.md                 ←   全局索引入口
 │   ├── literature_index.json    ←   DOI→标题 索引缓存
-│   ├── concepts/                ←   概念页（中颗粒度）
-│   ├── literature/              ←   文献笔记
-│   ├── methods/                 ←   方法页
-│   └── projects/                ←   项目综述（8 章框架）
+│   ├── <课题A>/                 ←   如「超高温陶瓷」
+│   │   ├── concepts/            ←     概念页（中颗粒度，80-250 行）
+│   │   ├── literature/          ←     文献笔记
+│   │   ├── methods/             ←     课题专用方法页
+│   │   └── projects/            ←     项目综述（8 章框架）
+│   ├── <课题B>/                 ←   如「锂离子电池正极材料」（同上四类）
+│   └── 通用/                    ←   跨课题共享
+│       ├── concepts/            ←     通用概念（掺杂/热力学/氧化理论…）
+│       └── methods/             ←     通用方法（DFT/MD/机器学习势…）
 ├── brainstorming/               ← 第 3 层：想法与探索（运行时生成）
 └── manuscripts/                 ← 第 4 层：完成的手稿 PDF（运行时生成）
 ```

@@ -107,11 +107,11 @@ for i, p in enumerate(all_papers):
 
 ```bash
 cd D:/科研/kb
-python .claude/skills/forge-discovery/scripts/dedup.py raw/search-results/json/search-results-*.json --index wiki/literature_index.json --wiki-dir wiki/literature/
+python .claude/skills/forge-discovery/scripts/dedup.py raw/search-results/json/search-results-*.json --index wiki/literature_index.json --wiki-dir wiki
 ```
 
 - 索引存在 → O(1) 查找（快）
-- 索引不存在 → 自动 fallback 到实时正则解析 `wiki/literature/*.md`
+- 索引不存在 → 自动 fallback 到实时正则解析 `wiki/**/literature/*.md`（递归覆盖各课题）
 - 输出：去重报告（stderr）+ 去重后 JSON（stdout）
 
 ### Step B5 — 展示结果 + 等待用户勾选
@@ -229,7 +229,7 @@ queries: [{q1: "...", mode: "low", returned: 20, accepted: 3}, ...]
 - q3: "query text" — low, 20篇, 结果为空（无相关文献）
 
 ## 已排除
-- 去重排除 N 篇 (DOI 已存在于 wiki/literature/)
+- 去重排除 N 篇 (DOI 已存在于 wiki/**/literature/)
 - 评级过滤 N 篇（低评级期刊）
 
 ## 下载结果

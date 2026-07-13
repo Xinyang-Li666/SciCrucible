@@ -145,11 +145,11 @@ for i, p in enumerate(all_papers):
 
 ```bash
 cd D:/科研/kb
-python .claude/skills/forge-discovery/scripts/dedup.py raw/search-results/json/search-results-*.json --index wiki/literature_index.json --wiki-dir wiki/literature/
+python .claude/skills/forge-discovery/scripts/dedup.py raw/search-results/json/search-results-*.json --index wiki/literature_index.json --wiki-dir wiki
 ```
 
 - 索引存在 → O(1) 查找（快）
-- 索引不存在 → 自动 fallback 到实时正则解析 `wiki/literature/*.md`
+- 索引不存在 → 自动 fallback 到实时正则解析 `wiki/**/literature/*.md`（递归覆盖各课题）
 - 输出：去重报告（stderr）+ 去重后 JSON（stdout）
 
 ---
@@ -253,12 +253,12 @@ scansci-pdf batch raw/search-results/dois.txt --output D:/科研/SciCrucible/raw
 📝 开始自动摄入...
 
 [1/4] 摄入 Kim2026_Oxidation.pdf...
-  ✅ 新增文献笔记: wiki/literature/Kim2026-Oxidation.md
+  ✅ 新增文献笔记: wiki/超高温陶瓷/literature/Kim2026-Oxidation.md
   ✅ 更新概念页: UHTC优先氧化与多相协同
   ✅ 文献索引缓存: 57 → 58 篇
 
 [2/4] 摄入 Zhang2025_Ablation.pdf...
-  ✅ 新增文献笔记: wiki/literature/Zhang2025-Ablation.md
+  ✅ 新增文献笔记: wiki/超高温陶瓷/literature/Zhang2025-Ablation.md
   📝 新建概念页: 超高温烧蚀机理
   ✅ 文献索引缓存: 58 → 59 篇
 
@@ -327,7 +327,7 @@ queries: [{q1: "...", mode: "ultra_low", returned: 10, accepted: 2}, ...]
 - q3: "query text" — low, 20篇, 采用 4篇
 
 ## 已排除
-- 去重排除 N 篇 (DOI 已存在于 wiki/literature/)
+- 去重排除 N 篇 (DOI 已存在于 wiki/**/literature/)
 - 评级过滤 N 篇（低评级期刊）
 
 ## 下载结果

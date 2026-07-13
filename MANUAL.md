@@ -104,13 +104,18 @@ ls SciCrucible/.claude/skills/forge-health/SKILL.md
 │   │       ├── reports/           ←      检索报告
 │   │       └── batches/           ←      批次状态
 │   │
-│   ├── wiki/                      ← 第 2 层：LLM 维护的结构化知识
+│   ├── wiki/                      ← 第 2 层：LLM 维护的结构化知识（按课题分层）
 │   │   ├── index.md               ←    全局索引入口
 │   │   ├── literature_index.json  ←    DOI 索引缓存（O(1) 去重查重）
-│   │   ├── concepts/              ←    17 个概念页（中颗粒度分组）
-│   │   ├── literature/            ←    71 篇文献笔记
-│   │   ├── methods/               ←    方法卡片
-│   │   └── projects/              ←    2 个项目综述（8 章框架）
+│   │   ├── <课题A>/               ←    如「超高温陶瓷」
+│   │   │   ├── concepts/          ←      概念页（中颗粒度分组，80-250 行）
+│   │   │   ├── literature/        ←      文献笔记（标注期刊评级）
+│   │   │   ├── methods/           ←      课题专用方法页
+│   │   │   └── projects/          ←      项目综述（8 章框架）
+│   │   ├── <课题B>/               ←    如「锂离子电池正极材料」（同上四类）
+│   │   └── 通用/                  ←    跨课题共享
+│   │       ├── concepts/          ←      通用概念（掺杂/热力学/氧化理论…）
+│   │       └── methods/           ←      通用方法（DFT/MD/机器学习势…）
 │   │
 │   ├── brainstorming/             ← 第 3 层：思考与探索
 │   │   ├── ideas/                 ←    设计文档与方法论
@@ -160,7 +165,7 @@ ls SciCrucible/.claude/skills/forge-health/SKILL.md
 │  PDF 文献 ──→ raw/new-papers/       ← 放这里          │
 │                  │                                    │
 │                  ▼ /forge-ingest（批量）                  │
-│              wiki/literature/  ──→ wiki/concepts/     │
+│              wiki/<课题>/literature/ ──→ concepts/    │
 │                  │                                    │
 │                  ▼ 摄入完成后                          │
 │              PDF 移至 raw/papers/    ← 已归档          │
@@ -190,7 +195,7 @@ ls SciCrucible/.claude/skills/forge-health/SKILL.md
 │   raw/new-papers/                                     │
 │       │                                               │
 │       ▼ /forge-ingest（手动触发或 /forge-weekly 自动）       │
-│   wiki/literature/ + wiki/concepts/                   │
+│   wiki/<课题>/literature/ + concepts/                 │
 │                                                       │
 └───────────────────────────────────────────────────────┘
 
@@ -585,7 +590,8 @@ LLM 会：
 ### 双链文化
 
 - 在 wiki 页面中积极使用 `[[双链]]`
-- `[[概念名]]` → concepts/ | `[[文献标题]]` → literature/ | `[[方法名]]` → methods/ | `[[projects/项目名]]` → projects/
+- `[[概念名]]` → `<课题>/concepts/` 或 `通用/concepts/` | `[[文献标题]]` → `<课题>/literature/` | `[[方法名]]` → `<课题>/methods/` 或 `通用/methods/` | `[[projects/项目名]]` → `<课题>/projects/`
+- 双链按 basename 解析，与所在课题目录无关；`[[projects/项目名]]` 用路径尾段消歧（概念页与项目页可同名）
 - 当你发现两个概念相关但未链接时，手动加上
 
 ### 内容质量标准
@@ -626,4 +632,4 @@ SciCrucible 建立在以下开源工具和服务之上：
 - **[OpenAlex](https://openalex.org)** — 开放学术图谱，提供 DOI 元数据解析
 - **[Semantic Scholar](https://semanticscholar.org)** — 学术搜索引擎，提供文献元数据补充
 
-> 最后更新：2026-07-06（新增环境准备与安装指南、scansci-pdf 详细配置、配置验证清单、致谢）
+> 最后更新：2026-07-13（wiki 目录树、数据流图、双链文化同步为「按课题分层」结构）

@@ -41,14 +41,14 @@ description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖�
 - **脉络引用**：项目页文献脉络中引用的文献是否均为高评级期刊（评级1-2），排除低评级期刊？
 
 ### 6. DOI 字段一致性
-- **DOI 覆盖率**：扫描 `wiki/literature/*.md`，检查每页是否存在 `**DOI:**` 字段
+- **DOI 覆盖率**：递归扫描 `wiki/**/literature/*.md`，检查每页是否存在 `**DOI:**` 字段
 - **缺失率统计**：(缺失 DOI 的文献数 / 总文献数)
 - 缺失率 > 10% → 报告「⚠️ 文献 DOI 覆盖率不足，可能导致去重漏网」
 - **列出所有缺失 DOI 的文献**，供用户手动补充
 - DOI 格式校验：检测异常格式（如 URL 而非裸 DOI、包含中文字符等）
 
 ### 7. 文献索引缓存一致性
-- **对比 `wiki/literature_index.json` 与实际 `wiki/literature/*.md`**：
+- **对比 `wiki/literature_index.json` 与实际 `wiki/**/literature/*.md`**（递归覆盖各课题）：
   - 文件存在但索引缺失 → 报告「索引缺失条目: N」，建议补录
   - 索引指向已删除文件 → 报告「索引悬空条目: N」，建议清理
   - 索引 `count` 与实际文件数不一致 → 报告差异
@@ -61,12 +61,14 @@ description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖�
 
 ```bash
 PYTHONIOENCODING=utf-8 python -c "
-import os, re
+import os, re, glob
 from pathlib import Path
 from datetime import datetime
 
-concepts_dir = Path('wiki/concepts')
-for f in sorted(concepts_dir.glob('*.md')):
+# 递归覆盖各课题与通用层：wiki/<课题>/concepts/ 与 wiki/通用/concepts/
+concept_files = sorted(glob.glob('wiki/**/concepts/*.md', recursive=True))
+for path in concept_files:
+    f = Path(path)
     content = f.read_text(encoding='utf-8')
     lines = content.count('\n')
     refs = len(re.findall(r'\[\[[^]]+\]\]', content))
@@ -82,7 +84,7 @@ for f in sorted(concepts_dir.glob('*.md')):
     if months_ago > 12: score -= 15
     if short_paras < 3: score -= 15
     
-    print(f'{score:3d} | {lines:3d}行 | {refs:2d}引用 | {months_ago:4.1f}月前 | {f.name}')
+    print(f'{score:3d} | {lines:3d}行 | {refs:2d}引用 | {months_ago:4.1f}月前 | {f.parent.parent.name}/{f.name}')
 "
 ```
 
@@ -94,7 +96,7 @@ for f in sorted(concepts_dir.glob('*.md')):
 - 输出：概念页健康评分排名，最低分的 3 个标红
 
 ### 9. 期刊预警检查（可选）
-- 检查 `wiki/literature/` 中是否有来自 MDPI 预警期刊的文献
+- 检查 `wiki/**/literature/` 中是否有来自 MDPI 预警期刊的文献
 - 列出供用户审查
 - 注意：此检查依赖期刊黑名单维护，当前为可选功能
 
@@ -199,7 +201,7 @@ for zone, fp in files:
 | 行数 | 篇幅 | 辅助判"叙述充分" |
 | 短段 | 10-80 字符的段落数（提纲化信号） | 参考维度 8 判据 |
 | 引用 | 文件名 stem 是否出现在 questions/todos/wiki 全文中 | 支撑提炼分 15 |
-| 概念页 | `wiki/concepts/<stem>.md` 是否存在 | 决定动作：新建 / 并入 |
+| 概念页 | 递归查 `wiki/**/concepts/<stem>.md` 是否存在 | 决定动作：新建 / 并入 |
 | 文件 | 文件名 | — |
 | 预览 | 首个非空非标题行前 40 字 | 分类线索 |
 
@@ -263,7 +265,7 @@ INDEX.md 让核心产出可导航，不再是黑盒。每次运行 forge-health 
 **Step 3 — 用户确认**：逐张点头 / 否决 / 修改。
 
 **Step 4 — 执行**（仅对确认项）：
-1. 生成 `wiki/concepts/<标题>.md` 草稿：中颗粒度、含机制解释、`[[双链]]` 互联。
+1. 生成概念页草稿（课题专属 → `wiki/<课题>/concepts/`，通用 → `wiki/通用/concepts/`）：中颗粒度、含机制解释、`[[双链]]` 互联。
 2. 原 brainstorming 文件顶部盖章：`> ✅ 已提炼 → [[概念页]]（YYYY-MM-DD）`，防重复提炼。
 3. 更新 `wiki/index.md`，挂到对应专题组。
 

@@ -30,6 +30,12 @@ wiki/
 brainstorming/
 manuscripts/
 
+# Design docs & plans (specs/plans — may contain local paths)
+docs/
+
+# Raw materials root (all contents runtime-generated; defensive bare rule)
+raw/
+
 
 # Local Claude Code settings
 .claude/settings.local.json

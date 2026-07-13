@@ -144,7 +144,7 @@ for i, p in enumerate(all_papers):
 ### 5b — 去重
 
 ```bash
-cd D:/科研/kb
+cd D:/科研/SciCrucible
 python .claude/skills/forge-discovery/scripts/dedup.py raw/search-results/json/search-results-*.json --index wiki/literature_index.json --wiki-dir wiki
 ```
 

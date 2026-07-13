@@ -3,7 +3,7 @@
 
 两级去重架构:
   1. --index 模式 (推荐): 读取 literature_index.json，O(1) 哈希查找
-  2. --wiki-dir 模式 (fallback): 实时正则解析 wiki/literature/*.md
+  2. --wiki-dir 模式 (fallback): 实时正则解析 wiki/**/literature/*.md（递归，兼容按课题分层）
 
 用法:
   python dedup.py <new_results.json> --index <index.json>          # 主路径
@@ -26,34 +26,43 @@ from difflib import SequenceMatcher
 
 # ── 路径自动检测 ──────────────────────────────────────
 
+def _has_lit(root) -> bool:
+    """判断 root 下是否存在任意 literature 目录（兼容按课题分层结构）。
+
+    分层后文献不再位于 wiki/literature/，而是散落于
+    wiki/<课题>/literature/。用 glob('wiki/**/literature') 递归探测。
+    """
+    return bool(list(Path(root).glob('wiki/**/literature')))
+
+
 def detect_forge_root() -> str:
     """自动检测 SciCrucible/ 根目录。
 
     优先级:
       1. 环境变量 FORGE_ROOT
-      2. 从脚本位置向上查找含 wiki/literature/ 的目录
+      2. 从脚本位置向上查找含 wiki/**/literature/ 的目录
       3. 当前工作目录
     """
     # 1. 环境变量
     env_root = os.environ.get('FORGE_ROOT')
-    if env_root and os.path.isdir(os.path.join(env_root, 'wiki', 'literature')):
+    if env_root and _has_lit(env_root):
         return env_root
 
     # 2. 从脚本位置推断
     script_dir = Path(__file__).resolve().parent
     for ancestor in [script_dir] + list(script_dir.parents):
-        if (ancestor / 'wiki' / 'literature').is_dir():
+        if _has_lit(ancestor):
             return str(ancestor)
 
     # 3. 当前工作目录
-    if (Path.cwd() / 'wiki' / 'literature').is_dir():
+    if _has_lit(Path.cwd()):
         return str(Path.cwd())
 
     return '.'
 
 
 KB_ROOT = detect_forge_root()
-DEFAULT_WIKI_DIR = os.path.join(KB_ROOT, 'wiki', 'literature')
+DEFAULT_WIKI_DIR = os.path.join(KB_ROOT, 'wiki')
 DEFAULT_INDEX = os.path.join(KB_ROOT, 'wiki', 'literature_index.json')
 
 
@@ -89,11 +98,16 @@ def load_index(index_path: str) -> dict | None:
 
 
 def extract_from_index(index: dict) -> tuple[set, set]:
-    """从索引缓存提取 DOI 集合和标题集合（O(1)）"""
+    """从索引缓存提取 DOI 集合和标题集合（O(1)）
+
+    DOI 归一化后入集：索引键可能保留原始大小写（如 10.26599/JAC...），
+    而 is_duplicate 对来料 DOI 归一化为小写比对——此处同样归一化，
+    避免大写 DOI 去重漏网（DOI 本身大小写不敏感）。
+    """
     dois = set()
     titles = set()
     for doi, info in index.get('papers', {}).items():
-        dois.add(doi)
+        dois.add(normalize_doi(doi))
         if info.get('title_normalized'):
             titles.add(info['title_normalized'])
     return dois, titles
@@ -101,17 +115,29 @@ def extract_from_index(index: dict) -> tuple[set, set]:
 
 # ── 实时正则解析模式（兜底路径）─────────────────────────
 
+def _iter_literature_files(wiki_dir: str):
+    """列出待扫描的文献 .md 文件（兼容分层与旧扁平结构）。
+
+    - 传入 wiki/（分层结构根）→ 递归 wiki/**/literature/*.md
+    - 传入具体的 wiki/<课题>/literature 或旧 wiki/literature → 直接 *.md
+    """
+    lit_dir = Path(wiki_dir)
+    if not lit_dir.exists():
+        return []
+    files = list(lit_dir.glob("**/literature/*.md"))
+    if not files and lit_dir.name == "literature":
+        files = list(lit_dir.glob("*.md"))
+    return files
+
+
 def extract_existing_dois(wiki_dir: str) -> set:
-    """从 wiki/literature/ 提取所有已有 DOI（兜底路径）
+    """从 wiki/**/literature/ 递归提取所有已有 DOI（兜底路径）
 
     文献页格式: **DOI:** 10.1016/j.actamat.2025.119123
     注意: 没有 YAML frontmatter。
     """
     dois = set()
-    lit_dir = Path(wiki_dir)
-    if not lit_dir.exists():
-        return dois
-    for md_file in lit_dir.glob("*.md"):
+    for md_file in _iter_literature_files(wiki_dir):
         content = md_file.read_text(encoding='utf-8')
         # 匹配内联字段: **DOI:** <value>
         doi_match = re.search(r'\*\*DOI:\*\*\s*([^\s\n]+)', content)
@@ -121,16 +147,13 @@ def extract_existing_dois(wiki_dir: str) -> set:
 
 
 def extract_existing_titles(wiki_dir: str) -> set:
-    """从 wiki/literature/ 提取所有已有标题（兜底路径）
+    """从 wiki/**/literature/ 递归提取所有已有标题（兜底路径）
 
     文献页格式: # Title of the Paper
     注意: 没有 YAML frontmatter。
     """
     titles = set()
-    lit_dir = Path(wiki_dir)
-    if not lit_dir.exists():
-        return titles
-    for md_file in lit_dir.glob("*.md"):
+    for md_file in _iter_literature_files(wiki_dir):
         content = md_file.read_text(encoding='utf-8')
         # 匹配 Markdown H1: # <Title>
         title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)

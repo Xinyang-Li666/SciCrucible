@@ -542,7 +542,7 @@ LLM 会：
   │     - DOI 命中 → 排除（已摄入）
   │     - DOI 缺失 → 标题归一化比对
   │
-  └─ 2. Fallback：实时正则解析 wiki/literature/*.md
+  └─ 2. Fallback：实时正则解析 wiki/**/literature/*.md（递归覆盖各课题）
         - 索引文件损坏/不存在时自动回退
 ```
 

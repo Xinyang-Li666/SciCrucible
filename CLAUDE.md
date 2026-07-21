@@ -41,6 +41,7 @@ SciCrucible/
 | `/forge-todo` | 待办事项管理 |
 | `/forge-health` | 知识库健康检查 |
 | `/forge-writing` | 文献锚定型学术写作（Introduction + Discussion），写前梳理大纲，逐段交互起草 |
+| `/forge-extract` | 烧蚀实验数据提取 — 检索→筛选→下载→提取→标准化→入库（构建结构化实验数据库） |
 
 ## 项目目录
 

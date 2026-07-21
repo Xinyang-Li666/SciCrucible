@@ -1,14 +1,16 @@
 ---
-description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖结构完整性、内容质量、文献质量等 11 个维度
+description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖结构完整性、内容质量、文献质量等 11 个维度。当用户想检查知识库状态、说"健康检查"、"检查断链"、"wiki有什么问题"、"整理brainstorming"时触发
 ---
 
 # /forge-health — 知识库健康检查
+
+> **SciCrucible 根目录**: `D:\科研\SciCrucible\` —— 所有 wiki/、raw/、scripts/ 路径以此为基准。
 
 运行 forge-health.sh 脚本，并由 LLM 解读和修复发现的问题。
 
 ## 流程
 
-1. **运行脚本**：执行 `bash scripts/forge-health.sh`
+1. **运行脚本**：执行 `bash D:\科研\SciCrucible\scripts\forge-health.sh`
 2. **分析结果**：
    - 断链 → 判断是页面缺失（需创建）还是链接笔误（需修正）
    - 孤立页面 → 判断是概念确实独立，还是缺少入链（需在相关页面添加链接）
@@ -60,32 +62,7 @@ description: 知识库健康检查 — 运行脚本 + LLM 专项诊断，覆盖�
 先运行量化统计命令：
 
 ```bash
-PYTHONIOENCODING=utf-8 python -c "
-import os, re, glob
-from pathlib import Path
-from datetime import datetime
-
-# 递归覆盖各课题与通用层：wiki/<课题>/concepts/ 与 wiki/通用/concepts/
-concept_files = sorted(glob.glob('wiki/**/concepts/*.md', recursive=True))
-for path in concept_files:
-    f = Path(path)
-    content = f.read_text(encoding='utf-8')
-    lines = content.count('\n')
-    refs = len(re.findall(r'\[\[[^]]+\]\]', content))
-    mtime = datetime.fromtimestamp(f.stat().st_mtime)
-    months_ago = (datetime.now() - mtime).days / 30.44
-    short_paras = sum(1 for p in content.split('\n\n') if 10 < len(p) < 80)
-    
-    score = 100
-    if lines > 300: score -= 15
-    if lines > 500: score -= 15
-    if refs > 15: score -= 10
-    if months_ago > 6: score -= 20
-    if months_ago > 12: score -= 15
-    if short_paras < 3: score -= 15
-    
-    print(f'{score:3d} | {lines:3d}行 | {refs:2d}引用 | {months_ago:4.1f}月前 | {f.parent.parent.name}/{f.name}')
-"
+python .claude/skills/forge-health/scripts/concept-health.py
 ```
 
 然后 LLM 对量化结果逐页评估：
@@ -105,31 +82,8 @@ for path in concept_files:
 清理 `raw/search-results/json/` 和 `raw/search-results/bib/` 中超过 1 个月的旧文件：
 
 ```bash
-PYTHONIOENCODING=utf-8 python -c "
-import os, time
-from pathlib import Path
-
-BASE = Path('raw/search-results')
-now = time.time()
-cutoff = now - 30 * 24 * 3600  # 1 month ago
-
-for sub in ['json', 'bib']:
-    d = BASE / sub
-    if not d.exists():
-        continue
-    for f in d.glob('search-results-*'):
-        if f.stat().st_mtime < cutoff:
-            age_days = (now - f.stat().st_mtime) / 86400
-            print(f'  🗑 {f.name} ({age_days:.0f}d old)')
-            f.unlink()
-    # Remove empty dir
-    remaining = list(d.glob('*'))
-    if not remaining:
-        d.rmdir()
-        print(f'  📁 Removed empty dir: {sub}/')
-
-print('Done.')
-"
+# --dry-run 预览 | --cutoff-days 30 自定义阈值（默认30天）
+python .claude/skills/forge-health/scripts/cleanup-search-results.py
 ```
 
 - **阈值**: 30 天（1 个月）
@@ -144,52 +98,7 @@ print('Done.')
 先运行机械统计脚本，获取每文件的量化指标：
 
 ```bash
-PYTHONIOENCODING=utf-8 python -c "
-import sys
-from pathlib import Path
-sys.stdout.reconfigure(encoding='utf-8')
-base = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('.')
-bdir = base / 'brainstorming'
-wdir = base / 'wiki'
-if not bdir.is_dir():
-    print('目录为空，跳过'); sys.exit(0)
-EXCLUDE = {'todos.md', 'questions.md', 'INDEX.md'}
-files = []
-for f in sorted(bdir.glob('*.md')):
-    if f.name not in EXCLUDE:
-        files.append(('散落', f))
-for sub in ('research', 'ideas'):
-    sd = bdir / sub
-    if sd.is_dir():
-        for f in sorted(sd.glob('*.md')):
-            files.append((sub, f))
-corpus = ''
-for n in ('questions.md', 'todos.md'):
-    p = bdir / n
-    if p.is_file():
-        corpus += p.read_text(encoding='utf-8') + '\n'
-if wdir.is_dir():
-    for wf in sorted(wdir.rglob('*.md')):
-        corpus += wf.read_text(encoding='utf-8') + '\n'
-cstems = set()
-cdir = wdir / 'concepts'
-if cdir.is_dir():
-    cstems = {c.stem for c in cdir.glob('*.md')}
-print('区 | 行数 | 短段 | 引用 | 概念页 | 文件 | 预览')
-print('---|---|---|---|---|---|---')
-for zone, fp in files:
-    c = fp.read_text(encoding='utf-8')
-    lines = c.count('\n')
-    sp = sum(1 for p in c.split('\n\n') if 10 < len(p) < 80)
-    ref = '是' if fp.stem in corpus else '否'
-    con = '是' if fp.stem in cstems else '否'
-    pv = ''
-    for ln in c.splitlines():
-        s = ln.strip()
-        if s and not s.startswith('#'):
-            pv = s[:40]; break
-    print(f'{zone} | {lines} | {sp} | {ref} | {con} | {fp.name} | {pv}')
-"
+python .claude/skills/forge-health/scripts/brainstorming-stats.py
 ```
 
 脚本只算机械指标，语义判断（分类、"叙述充分/机制解释"）由 LLM 完成，与维度 8 同构。

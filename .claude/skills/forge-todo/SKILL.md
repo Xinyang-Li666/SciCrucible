@@ -1,14 +1,16 @@
 ---
-description: 管理 brainstorming/todos.md 中的待办事项，支持列出、添加、完成、清理操作
+description: 管理 brainstorming/todos.md 中的待办事项，支持列出、添加、完成、清理操作。当用户提到待办/todo/任务、说"我该做什么"、"记一下"、"标完成"、"清理待办"时触发
 ---
 
 # /forge-todo — 待办管理
 
-管理 `brainstorming/todos.md` 中的待办事项。
+> **SciCrucible 根目录**: `D:\科研\SciCrucible\` —— brainstorming/ 以此为基准。
+
+管理 `D:\科研\SciCrucible\brainstorming\todos.md` 中的待办事项。
 
 ## 文件格式
 
-brainstorming/todos.md 使用以下格式：
+todos.md 使用以下格式：
 
 ```markdown
 # 待办事项
@@ -40,3 +42,11 @@ brainstorming/todos.md 使用以下格式：
 
 ### 清理已完成
 用户 "清理待办" 时，将完成超过 30 天的条目归档（移到文件末尾的归档区）。
+
+## 边界条件
+
+- **todos.md 不存在**：自动创建带有「当前」「已完成」「归档」三个章节的默认文件
+- **未匹配到目标条目**：列出所有条目，标注相似项，请用户重新指定
+- **「当前」区为空**：提示"没有待办事项，需要添加吗？"
+- **条目格式异常**：自动修复缺失的标签字段（优先级/创建日期），保持格式一致
+- **疑似重复条目**：检测到与已有条目描述高度相似时，提示用户确认后再添加

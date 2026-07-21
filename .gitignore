@@ -37,8 +37,24 @@ docs/
 raw/
 
 
+# Personal experiment databases (user-generated research data)
+database/ablation.json
+database/processed_dois.json
+database/extract-constraints.md
+
+# Personal style references (PDFs for writing style calibration)
+references/
+
+# Claude Code internals
+.agents/
+.codex/
+AGENTS.md
+
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Temp files (Office lock files etc.)
+~$*
 
 # OS files
 .DS_Store

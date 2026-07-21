@@ -1,0 +1,26 @@
+{
+  "skill_name": "forge-extract",
+  "evals": [
+    {
+      "id": 1,
+      "name": "筛选-含烧蚀数据的摘要应标记为实验",
+      "prompt": "以下是sci search返回的摘要，请筛选含烧蚀实验数据的文献：\n\nE1 | 2025 | 10.1016/j.compositesb.2025.112552 | The oxidation/ablation differences of multi-phase carbide ceramics evaluated by atomic simulations and performance data validation\n  HfC-ZrC based coatings are widely used for thermal protection of C/C composites. TiC or TaC modification creates multi-phase carbide systems, but which is superior lacks atomic-level understanding. We combine DFT-AIMD simulations with oxyacetylene ablation tests (2.4 MW/m², 120-180s). HZTI coating shows linear recession rate of 0.321 μm/s vs HZTA 0.565 μm/s at 180s. Ti doping suppresses O migration (RMSD 3.43 Å vs Ta 5.86 Å at 2000°C).",
+      "expected_output": "E1 应标记为 ✅[实验]：明确提及oxyacetylene ablation tests + 定量结果(Rl=0.321/0.565 μm/s)",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "筛选-纯计算无实验的摘要应标记为跳过",
+      "prompt": "以下是sci search返回的摘要，请筛选含烧蚀实验数据的文献：\n\nE5 | 2024 | 10.1016/j.actamat.2024.119876 | First-principles study of oxygen diffusion in (Hf,Zr,Ti,Ta,Nb)C high-entropy carbides\n  We perform DFT calculations to investigate oxygen vacancy formation and migration in five-component high-entropy carbides. NEB calculations reveal that Ti-rich environments exhibit higher O migration barriers (2.3 eV) compared to Ta-rich (1.7 eV). These computational results suggest Ti addition may improve oxidation resistance of HEC systems.",
+      "expected_output": "E5 应标记为 ❌[跳过]：纯DFT计算，无实验验证，无烧蚀测试",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "提取-从全文Markdown中正确填充JSON字段",
+      "prompt": "从以下PyMuPDF4LLM提取的论文Markdown片段中，提取烧蚀实验数据并填充JSON。论文研究了两种涂层HZTI(HfC-ZrC-TiC)和HZTA(HfC-ZrC-TaC)，各在氧乙炔2.4MW/m²下测试120s和180s。\n\n## Experimental\n\n### Ablation Test\nOxyacetylene flame ablation tests were conducted according to GJB 323A-96 standard. The heat flux was 2.4 MW/m² with a gun-to-sample distance of 10 mm. Samples (Φ30mm × 5mm) were coated on C/C substrate via SAPS spraying. Surface temperature reached ~2500°C measured by infrared pyrometer.\n\n**HZTI coating** (HfC-ZrC-TiC, equimolar 1:1:1):\n- 120s: mass loss rate = -0.670 mg/s, linear recession rate = 0.140 μm/s\n- 180s: mass loss rate = 1.262 mg/s, linear recession rate = 0.321 μm/s (failure)\n\n**HZTA coating** (HfC-ZrC-TaC, equimolar 1:1:1):\n- 120s: mass loss rate = 2.653 mg/s, linear recession rate = 0.565 μm/s (failure)\n\nPost-ablation XRD revealed m-(Hf,Zr)O₂ as the primary oxide phase for both coatings.",
+      "expected_output": "应创建2个material对象(HZTI和HZTA)，每个各2条tests[]。HZTI.tests[0].results.mass_loss_rate.original_value=-0.670, original_unit='mg/s'。material.type应为'涂层'，coating_substrate='C/C'",
+      "files": []
+    }
+  ]
+}

@@ -29,6 +29,7 @@ SciCrucible 是一套**框架**——不是成品知识库，而是帮你**构�
 | 设计新材料成分 / 分析机制 | `/forge-think` 基于已有知识跨领域类比思考 |
 | 知识库质量下降 | `/forge-health` 全面检查断链/过期/缺口/DOI覆盖率/概念页健康评分 |
 | 写论文 Introduction / Discussion | `/forge-writing` 文献锚定型写作，逐段交互起草 |
+| 构建实验数据库（如烧蚀/氧化） | `/forge-extract` 检索→筛选→下载→提取→结构化 JSON 数据库 |
 
 ## 快速开始
 
@@ -101,6 +102,7 @@ cp ~/Downloads/paper.pdf SciCrucible/raw/new-papers/
 | `/forge-todo` | 待办管理 |
 | `/forge-health` | 知识库健康检查 |
 | `/forge-writing` | 文献锚定型学术写作（Introduction + Discussion） |
+| `/forge-extract` | 通用实验数据提取 — 检索→筛选→下载→提取→标准化→入库 |
 
 ## 目录结构
 
@@ -119,6 +121,14 @@ SciCrucible/
 │   ├── forge-todo/              ←   /forge-todo（待办管理）
 │   ├── forge-health/            ←   /forge-health（健康检查）
 │   ├── forge-writing/           ←   /forge-writing（学术写作）
+│   │   ├── SKILL.md             ←     IMRD 四段独立路由 + 三阶深挖
+│   │   ├── references/          ←     语言规则
+│   │   └── evals/
+│   ├── forge-extract/            ←   /forge-extract（通用实验数据提取）
+│   │   ├── SKILL.md             ←     6 步 pipeline 完整流程
+│   │   ├── scripts/             ←     normalize_units, validate_schema, merge_to_db...
+│   │   ├── references/          ←     ablation-schema.json, field-guidelines
+│   │   └── evals/
 │   ├── forge-discovery/         ←   /forge-discovery（主动文献发现）
 │   │   ├── SKILL.md             ←     完整流程定义
 │   │   ├── scripts/dedup.py     ←     DOI 去重脚本
@@ -137,7 +147,14 @@ SciCrucible/
 │   │   ├── bib/                 ←     BibTeX 引用
 │   │   ├── reports/             ←     检索报告
 │   │   └── batches/             ←     批次状态
+│   ├── extract/                  ←   forge-extract 工作目录（运行时生成）
+│   │   ├── papers/              ←     待提取 PDF
+│   │   ├── md/                  ←     PyMuPDF4LLM 转换输出
+│   │   └── json/                ←     LLM 提取的结构化 JSON
 │   └── references.bib           ←   全局 BibTeX 库（自动生成）
+├── database/                     ← 结构化实验数据库（运行时生成）
+│   ├── ablation.json             ←   烧蚀实验数据
+│   └── processed_dois.json       ←   已处理 DOI 追踪
 ├── wiki/                        ← 第 2 层：LLM 维护的结构化知识（运行时生成，按课题分层）
 │   ├── index.md                 ←   全局索引入口
 │   ├── literature_index.json    ←   DOI→标题 索引缓存

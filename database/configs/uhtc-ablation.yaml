@@ -1,0 +1,113 @@
+# UHTC 烧蚀实验数据库 — 由 forge-extract v1 数据自动生成
+# 可手动编辑此文件以调整搜索策略、筛选标准、字段定义
+
+meta:
+  name: "uhtc-ablation"
+  display_name: "UHTC 烧蚀实验数据库"
+  domain: "材料科学"
+  schema_version: "1.0"
+  created_at: "2026-07-21"
+  migrated_from: "database/ablation.json (v1 专用烧蚀提取)"
+
+search:
+  queries:
+    - "UHTC ablation oxyacetylene plasma experimental carbide ceramic"
+    - "HfC ZrC TaC TiC NbC carbide ablation resistance mass loss rate"
+    - "ultra-high temperature ceramic ablation oxyacetylene plasma test linear recession"
+  year_from: 2016
+  year_to: 2026
+  limit_per_query: 20
+  mode: "ultra_low"
+
+screening:
+  include:
+    - "摘要明确提及{test_method}方法 + 定量质量烧蚀率/线烧蚀率数值"
+    - "实验研究（非纯计算/综述）"
+  exclude:
+    - "纯DFT/MD计算无实验验证"
+    - "综述/review/article"
+    - "TGA/DSC热分析（非{test_method}）"
+    - "涂层/C-C复合材料/碳纤维复合材料"
+
+test_methods:
+  - name: "氧乙炔火焰"
+    aliases: ["oxyacetylene", "氧乙炔", "O2+C2H2", "GJB 323A", "GJB-323A96"]
+  - name: "等离子体火焰"
+    aliases: ["plasma", "等离子", "arc-jet", "电弧风洞"]
+
+measurements:
+  mass_loss_rate:
+    display: "质量烧蚀率"
+    description: "单位时间单位面积的质量损失"
+    standard_unit: "mg/cm²·s"
+    raw_units: ["mg/s", "g/s", "μg/s", "mg/cm²·s", "g/cm²·s"]
+    required: true
+  linear_loss_rate:
+    display: "线烧蚀率"
+    description: "单位时间的厚度损失"
+    standard_unit: "mm/s"
+    raw_units: ["μm/s", "um/s", "mm/s", "mm/min", "cm/s"]
+    required: true
+
+sample_fields:
+  - name: "label"
+    display: "材料标签"
+    type: "string"
+    required: true
+  - name: "system"
+    display: "材料体系"
+    type: "string"
+    required: true
+  - name: "type"
+    display: "材料类型"
+    type: "enum"
+    values: ["块体陶瓷", "碳纤维复合材料", "C/C复合材料", "涂层"]
+    required: true
+  - name: "base_elements"
+    display: "主元素原子比"
+    type: "object"
+    required: true
+  - name: "dopant_elements"
+    display: "掺杂元素"
+    type: "object"
+    required: false
+  - name: "anion_elements"
+    display: "阴离子含量"
+    type: "object"
+    required: true
+  - name: "reinforcement"
+    display: "增强相"
+    type: "object|null"
+    required: false
+  - name: "coating_substrate"
+    display: "涂层基体"
+    type: "string|null"
+    required: false
+  - name: "sintering"
+    display: "制备工艺参数"
+    type: "object"
+    required: true
+
+confidence_rules:
+  high: "质量烧蚀率和线烧蚀率至少一个有明确数值 + 烧蚀方法明确 + 组分化学式明确 + 样品尺寸已知"
+  medium: "核心数据有但缺少辅助信息（热流密度、背面温度、氧化层厚度等）"
+  low: "仅有定性描述无定量值；或数据来自间接推断（如图表估算）；或仅报对比值无绝对值"
+
+quality_flags:
+  - "Rm未报道"
+  - "Rd未报道"
+  - "单位换算"
+  - "成分推测"
+  - "缺样品尺寸"
+  - "缺热流密度"
+  - "仅相对值"
+  - "PDF表格损坏"
+  - "PDF提取失败"
+  - "无烧蚀数据"
+  - "图表估算"
+  - "需人工核查"
+
+database:
+  # 指向已有 v1 数据库，无数据迁移
+  output_file: "database/ablation.json"
+  processed_dois_file: "database/processed_dois.json"

@@ -140,7 +140,12 @@ ls SciCrucible/.claude/skills/forge-health/SKILL.md
 │   │   ├── forge-think/           ←    协作思考
 │   │   ├── forge-todo/            ←    待办管理
 │   │   ├── forge-health/          ←    健康检查
-│   │   └── forge-writing/         ←    学术写作
+│   │   ├── forge-writing/         ←    学术写作
+│   │   └── forge-extract/          ←    通用实验数据提取
+│   │       ├── SKILL.md             ←    三阶段流程 + 8 问 Q&A 向导
+│   │       ├── scripts/             ←    normalize_units.py, validate_schema.py, merge_to_db.py...
+│   │       ├── references/          ←    schema 定义与字段指南（烧蚀示例）
+│   │       └── evals/
 │   │
 │   └── scripts/                   ← 辅助脚本
 │       ├── extract_pdf.py         ←    PDF 文本提取
@@ -433,6 +438,7 @@ sci usage   # 查看剩余额度，确认认证成功
 | `/forge-todo` | 管理待办 | `/forge-todo 添加待办: ...` |
 | `/forge-health` | 健康检查 | `/forge-health` |
 | `/forge-writing` | 文献锚定型学术写作 | `/forge-writing 写LNO掺杂的Introduction` |
+| `/forge-extract` | 通用实验数据提取（Q&A配置向导→试点验证→全量检索入库） | `/forge-extract`（首次自动进入配置向导） |
 
 ---
 
@@ -525,6 +531,30 @@ LLM 会：
 ```
 
 讨论中有价值的见解会自动提示你归档到 `brainstorming/`。
+
+### 场景 H：构建实验数据库（通用数据提取管道）
+
+```
+──── 首次使用 ────
+1. 发起：/forge-extract
+2. LLM 进入 Q&A 配置向导（8 问）：
+   Q1 数据集名称/领域 → Q2 测试方法 → Q3 测量指标 → Q4 单位标准
+   Q5 样品字段 → Q6 筛选标准 → Q7 检索关键词 → Q8 质量判据
+3. 自动生成 3 个配置文件：
+   database/configs/<name>.yaml + -schema.json + -fields.md
+
+──── 试点验证 ────
+4. Phase 2: 3-5 篇试点检索 → 提取 → 逐篇审阅
+5. 用户反馈迭代 → 配置锁定
+
+──── 全量提取 ────
+6. Phase 3: 多角度 sci search → 已入库 DOI 过滤 → 摘要筛选
+7. 用户确认 → scansci-pdf 批量下载 PDF
+8. PyMuPDF4LLM PDF→MD → LLM 逐篇提取结构化 JSON
+9. Python Pipeline: normalize_units → normalize_composition → validate_schema → dedup_check → merge_to_db
+10. 记录已处理 DOI → 质量报告
+11. 后续运行：/forge-extract --config <name> 直接进入 Phase 3 追加数据
+```
 
 ---
 
@@ -632,4 +662,4 @@ SciCrucible 建立在以下开源工具和服务之上：
 - **[OpenAlex](https://openalex.org)** — 开放学术图谱，提供 DOI 元数据解析
 - **[Semantic Scholar](https://semanticscholar.org)** — 学术搜索引擎，提供文献元数据补充
 
-> 最后更新：2026-07-13（wiki 目录树、数据流图、双链文化同步为「按课题分层」结构）
+> 最后更新：2026-07-21（新增 forge-extract 烧蚀数据提取管道；forge-writing 全面优化支持 IMRD 四段独立路由；skills 目录树同步）

@@ -1,6 +1,6 @@
 # SciCrucible v2.0.0 用户手册
 
-> 基于 Claude 的科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
+> 科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
 
 本手册区分公开工具与本地进阶扩展。首先阅读 [发布状态](docs/release-status.md)。
 
@@ -12,9 +12,9 @@ cd SciCrucible
 python --version
 ```
 
-建议 Python 3.11+。所有命令均从仓库根目录执行；不需要在根目录内再建立一层 SciCrucible。Agent 应能读取 Markdown 技能并调用本地脚本。现有 `.claude/skills/` 是兼容入口，其他 Agent 的配置见 [接入指南](docs/agent-quickstart.md)。
+建议 Python 3.11+。所有命令均从仓库根目录执行；不需要在根目录内再建立一层 SciCrucible。Agent 应能读取 Markdown 技能并调用本地脚本。项目技能位于 `.agents/skills/`，Agent 的配置见 [接入指南](docs/agent-quickstart.md)。
 
-Claude 运行环境可读取现有兼容技能；其他 Agent 按相同来源与授权契约接入，不需要把项目限定为单一宿主。
+不同 Agent 按相同来源与授权契约接入，不需要把项目限定为单一宿主。
 
 按实际操作安装依赖：PDF 解析需要 `pymupdf`，期刊评级表读取需要 `openpyxl`。部分进阶扩展另需 `pdfplumber` 等依赖，不能把缺依赖误报成无数据。SciMaster CLI 与 scansci-pdf 为文献发现/下载的可选集成，配置凭据留在本地，不提交到 Git。已有宿主工具可按授权范围使用，不要求所有用户采用同一模型服务。
 
@@ -22,7 +22,7 @@ Claude 运行环境可读取现有兼容技能；其他 Agent 按相同来源与
 
 ## 配置研究方向
 
-读取你所用 Agent 的项目指令。可参考 [AGENTS.public.md](AGENTS.public.md) 写入自己的 AGENTS.md；兼容运行环境可读取 CLAUDE.md。替换课题名称与本机路径，保留来源、授权和错误处理规则。按需配置发现技能中的 weekly.yaml、期刊评级表与下载工具。不要上传私人论文、笔记、数据库、API Key、运行账本或评测答案。
+读取你所用 Agent 的项目指令。可参考 [AGENTS.public.md](AGENTS.public.md) 写入自己的 AGENTS.md。替换课题名称与本机路径，保留来源、授权和错误处理规则。按需配置发现技能中的 weekly.yaml、期刊评级表与下载工具。不要上传私人论文、笔记、数据库、API Key、运行账本或评测答案。
 
 ## 文献摄入
 

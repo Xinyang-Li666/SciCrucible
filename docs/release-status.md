@@ -18,5 +18,5 @@
 - 已知问题：缺少 pdfplumber；recover_completed_claims 导入失败；collection selection 的 risk_flags 查询 KeyError；Al–Cu controller 新任务调用断言失败。
 - 未执行科研模型调用、论文下载或数据库入库。
 
-本轮按用户授权发布 v2.0.0，并在备份后移除历史提交中的 Claude 联合署名，保留真实作者、日期和代码内容；不变更 GitHub 协作者访问权限。历史重写与远端同步由主代理执行并验收，完成情况以最终发布结果为准。GitHub Contributors 统计可能缓存，署名移除后页面显示可能延迟更新。
+本轮按用户授权发布 v2.0.0，并在备份后移除历史提交中的历史联合署名，保留真实作者、日期和代码内容；不变更 GitHub 协作者访问权限。历史重写与远端同步由主代理执行并验收，完成情况以最终发布结果为准。GitHub Contributors 统计可能缓存，署名移除后页面显示可能延迟更新。
 

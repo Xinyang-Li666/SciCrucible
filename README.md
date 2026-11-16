@@ -1,12 +1,12 @@
 # SciCrucible v2.0.0 — 科学智能知识库
 
-> 基于 Claude 的科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
+> 科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
 
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
 ## 这是什么
 
-SciCrucible 是基于 Claude 的科学智能知识库框架，也提供其他 Agent 可读取的技能与操作契约。它帮助你构建自己的知识库，串联文献摄入、知识分析、科学讨论与学术写作。你只需提供 PDF 论文和配置，SciCrucible 自动完成：
+SciCrucible 是科学智能知识库框架，也提供其他 Agent 可读取的技能与操作契约。它帮助你构建自己的知识库，串联文献摄入、知识分析、科学讨论与学术写作。你只需提供 PDF 论文和配置，SciCrucible 自动完成：
 
 - 文献元数据提取 → 结构化笔记（组分-条件-性质-机制闭环）
 - 概念自动聚合（中颗粒度：共享同一物理机制的合并）
@@ -49,7 +49,7 @@ SciCrucible 是基于 Claude 的科学智能知识库框架，也提供其他 Ag
 
 ### 0. 前置条件
 
-- 能读取项目技能与执行本地脚本的 Agent；现有 `.claude/skills/` 保留 Claude Code 兼容入口，其他 Agent 见 [接入指南](docs/agent-quickstart.md)
+- 能读取项目技能与执行本地脚本的 Agent；项目技能位于 `.agents/skills/`，Agent 接入方式见 [接入指南](docs/agent-quickstart.md)
 - [SciMaster CLI](https://scimaster.ai)（可选，用于文献发现功能）
 - [scansci-pdf](https://github.com/nick-cn/scansci-pdf)（可选，用于文献下载功能）
 - Python 3.11+
@@ -65,10 +65,10 @@ cd SciCrucible
 
 详细的安装和配置指南见 **[MANUAL.md](./MANUAL.md)**。核心步骤：
 
-- **Claude Code MCP**：配置 `scansci-pdf`（文献下载）
+- **Agent MCP 工具**：配置 `scansci-pdf`（文献下载）
 - **SciMaster CLI**：配置 `sci` 命令（文献检索）
 - **期刊评级表**：仓库已包含 `journal-ratings.xlsx`（社区整理的期刊评级参考，非官方数据）
-- **CLAUDE.md**：将课题名称替换为你自己的研究方向
+- **AGENTS.public.md**：将课题名称替换为你自己的研究方向
 
 ### 3. 开始使用
 
@@ -77,7 +77,7 @@ cd SciCrucible
 mkdir -p raw/new-papers
 cp ~/Downloads/paper.pdf raw/new-papers/
 
-# 在 Claude Code 中打开项目，输入：
+# 在支持技能的 Agent 中打开项目，输入：
 /forge-ingest
 
 # 知识库自动生长（按课题分层）
@@ -126,10 +126,10 @@ SciCrucible/
 ├── README.md                    ← 本文件
 ├── MANUAL.md                    ← 详细使用手册
 ├── LICENSE                      ← GNU GPL v3
-├── CLAUDE.md                    ← 项目指令（Claude Code 自动读取）
+├── AGENTS.public.md             ← 公共 Agent 指令模板
 ├── .gitignore                   ← Git 忽略规则
 ├── .mcp.json                    ← MCP 配置模板
-├── .claude/skills/              ← Claude Code skill 定义
+├── .agents/skills/              ← Agent skill 定义
 │   ├── forge-ingest/            ←   /forge-ingest（文献摄入）
 │   ├── forge-search/            ←   /forge-search（知识库查询）
 │   ├── forge-think/             ←   /forge-think（协作思考）
@@ -212,10 +212,10 @@ SciCrucible/
 
 Fork 后你需要做的：
 
-1. **修改 `CLAUDE.md`**：替换课题名称和研究方向
+1. **修改 `AGENTS.public.md`**：替换课题名称和研究方向
 2. **修改 `weekly.yaml`**：替换检索关键词
 3. **检查期刊评级表**：仓库已含 `journal-ratings.xlsx`，如需更新请自行替换
-4. **配置 MCP**：在 Claude Code 中启用 `scansci-pdf`
+4. **配置 MCP**：在 Agent 环境中启用 `scansci-pdf`
 5. **配置 SciMaster**：运行 `sci init`（如需文献发现功能）
 
 ## 完整文档

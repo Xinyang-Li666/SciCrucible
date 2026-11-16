@@ -1,0 +1,8 @@
+{
+  "roots": ["wiki", "database"],
+  "max_candidates": 5,
+  "max_chars": 1600,
+  "max_expand_chars": 6000,
+  "topics": {},
+  "aliases": {}
+}

@@ -1,0 +1,61 @@
+﻿# weekly.yaml — 周报模式关键词配置
+# 最后更新: 2026-07-06
+# 用途: /forge-weekly 的各课题检索关键词
+#
+# 关键词选择原则:
+#   1. 每个课题 4-6 个关键词
+#   2. 覆盖核心方向 + 边缘探索方向
+#   3. 足够具体，避免过宽词汇（如 "ceramics"）
+#   4. 从 wiki 概念页和项目页中提炼
+#
+# 更新说明:
+#   - 研究方向变化时修改 keywords
+#   - 长期无摄入的关键词 → 4 周后提示审查
+#   - 调整前需通知用户并取得同意
+
+topics:
+  超高温陶瓷:
+    keywords:
+      - "UHTC oxidation resistance"
+      - "HfC-SiC composite ablation"
+      - "ZrC ceramic oxidation behavior"
+      - "ultra-high temperature ceramic coating"
+      - "HfB2 ZrB2 oxidation"
+      - "carbonitride UHTC design"
+      - "high entropy carbide oxidation"
+      - "TaHfC oxidation skeleton"
+    priority_journals:
+      - "Acta Materialia"
+      - "Journal of the European Ceramic Society"
+      - "Corrosion Science"
+      - "Journal of the American Ceramic Society"
+      - "Ceramics International"
+      - "Nature Reviews Materials"
+
+# 可选: 期刊黑名单（MDPI 预警期刊等，待维护）
+# blacklisted_journals:
+#   - "Materials"
+#   - "Coatings"
+#   - "Nanomaterials"
+
+# ─────────────────────────────────────────────────────
+# 反馈追踪（/forge-weekly 自动写入，不要手动编辑）
+# ─────────────────────────────────────────────────────
+# 记录每周各关键词的推荐数、下载数、摄入数。
+# 连续 4 周摄入率为 0 的关键词 → 标记为"建议审查"。
+#
+# 格式:
+#   feedback:
+#     2026-W27:
+#       "UHTC oxidation resistance":
+#         recommended: 3
+#         downloaded: 2
+#         ingested: 2
+#         ingestion_rate: 0.67
+#
+# 自动调整规则（执行前必须通知用户并取得同意）:
+#   - 连续 4 周摄入率 = 0 → 标记建议审查，推送通知
+#   - 连续 8 周摄入率 = 0 → 建议替换或删除
+#   - 摄入率最高的关键词 → 建议提升权重（更频繁检索）
+#
+# feedback: {}

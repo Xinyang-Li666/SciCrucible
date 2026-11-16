@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UHTC Ablation Experiment Database",
+  "description": "超高温陶瓷烧蚀实验数据结构化数据库。一行 = 一个材料组分，tests[] 嵌套多个测试条件。",
+  "type": "object",
+  "required": ["meta", "materials"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "updated", "total_materials"],
+      "properties": {
+        "version": {"type": "string", "description": "Schema 版本号"},
+        "updated": {"type": "string", "format": "date-time", "description": "最后更新时间"},
+        "total_materials": {"type": "integer", "description": "材料条目总数"}
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/material"}
+    }
+  },
+  "$defs": {
+    "material": {
+      "type": "object",
+      "required": ["id", "doi", "source", "material", "tests", "quality"],
+      "properties": {
+        "id": {"type": "string", "description": "唯一标识，格式: FirstAuthorYear-System，如 Peng2025-HfCN-Csf"},
+        "doi": {"type": "string", "description": "DOI"},
+        "source": {"$ref": "#/$defs/source"},
+        "material": {"$ref": "#/$defs/material_info"},
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/test"}
+        },
+        "quality": {"$ref": "#/$defs/quality"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["file", "extracted_at"],
+      "properties": {
+        "file": {"type": "string", "description": "来源 PDF 文件名"},
+        "pages": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "description": "数据所在页码"
+        },
+        "extracted_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "material_info": {
+      "type": "object",
+      "required": ["label", "system", "type", "base_elements", "anion_elements", "sintering"],
+      "properties": {
+        "label": {"type": "string", "description": "论文中的组分名称，如 Csf/HfC₀.₇₆N₀.₂₄"},
+        "system": {"type": "string", "description": "体系简称，如 HfCN-Csf"},
+        "type": {
+          "type": "string",
+          "enum": ["块体陶瓷", "碳纤维复合材料", "C/C复合材料", "涂层"],
+          "description": "材料类型"
+        },
+        "base_elements": {
+          "type": "object",
+          "description": "金属元素原子比，键为元素符号，值为化学计量系数（以主元素=1为基准）",
+          "additionalProperties": {"type": "number"}
+        },
+        "dopant_elements": {
+          "type": "object",
+          "description": "掺杂元素原子比，没有掺杂为空对象 {}",
+          "additionalProperties": {"type": "number"}
+        },
+        "anion_elements": {
+          "type": "object",
+          "description": "阴离子含量，键为 C/N/B/Si/O，值为化学计量系数",
+          "properties": {
+            "C": {"type": "number"},
+            "N": {"type": "number"},
+            "B": {"type": "number"},
+            "Si": {"type": "number"},
+            "O": {"type": "number"}
+          }
+        },
+        "reinforcement": {
+          "type": ["object", "null"],
+          "description": "增强相信息，非复合材料为 null",
+          "properties": {
+            "type": {"type": "string", "description": "Csf / Cf / SiCw / ZrB₂p ..."},
+            "vol_frac": {"type": "number", "description": "体积分数，0-1"},
+            "detail": {"type": "string", "description": "纤维/颗粒规格"}
+          }
+        },
+        "coating_substrate": {
+          "type": ["string", "null"],
+          "description": "涂层基体材料，非涂层为 null",
+          "enum": ["C/C", "石墨", "Csf/SiC", null]
+        },
+        "sintering": {
+          "type": "object",
+          "required": ["method"],
+          "properties": {
+            "method": {"type": "string", "description": "SPS / HP / PIP / RMI / 无压烧结 / ..."},
+            "temperature_C": {"type": ["number", "null"]},
+            "pressure_MPa": {"type": ["number", "null"]},
+            "time_min": {"type": ["number", "null"]},
+            "atmosphere": {"type": ["string", "null"]}
+          }
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "required": ["method", "duration_s", "results"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["氧乙炔", "等离子", "激光", "风洞", "发动机尾焰", "其他"],
+          "description": "烧蚀方法"
+        },
+        "standard": {"type": ["string", "null"], "description": "测试标准，如 GJB 323A-96"},
+        "heat_flux_kW_m2": {"type": ["number", "null"], "description": "热流密度"},
+        "flame_temperature_C": {"type": ["number", "null"], "description": "火焰/等离子体温度"},
+        "surface_temperature_C": {"type": ["number", "null"], "description": "样品表面温度（红外测温/热电偶）"},
+        "duration_s": {"type": "number", "description": "测试时长，秒"},
+        "atmosphere": {"type": ["string", "null"], "description": "气氛描述"},
+        "gas_params": {
+          "type": "object",
+          "description": "气体参数，仅氧乙炔填写",
+          "properties": {
+            "O2_flow_L_s": {"type": ["number", "null"]},
+            "O2_pressure_MPa": {"type": ["number", "null"]},
+            "C2H2_flow_L_s": {"type": ["number", "null"]},
+            "C2H2_pressure_MPa": {"type": ["number", "null"]}
+          }
+        },
+        "sample_size_mm": {
+          "type": "object",
+          "description": "样品尺寸",
+          "properties": {
+            "diameter": {"type": ["number", "null"]},
+            "length": {"type": ["number", "null"]},
+            "width": {"type": ["number", "null"]},
+            "thickness": {"type": ["number", "null"]}
+          }
+        },
+        "results": {
+          "type": "object",
+          "required": ["mass_loss_rate", "linear_loss_rate"],
+          "properties": {
+            "mass_loss_rate": {"$ref": "#/$defs/measured_value"},
+            "linear_loss_rate": {"$ref": "#/$defs/measured_value"},
+            "mass_loss_rate_compared_to": {
+              "type": ["object", "null"],
+              "properties": {
+                "reference": {"type": "string"},
+                "ratio": {"type": ["number", "null"]}
+              }
+            },
+            "linear_loss_rate_compared_to": {
+              "type": ["object", "null"],
+              "properties": {
+                "reference": {"type": "string"},
+                "ratio": {"type": ["number", "null"]}
+              }
+            },
+            "back_temp_C": {"type": ["number", "null"], "description": "样品背面温度"},
+            "failure_time_s": {"type": ["number", "null"], "description": "失效时间（达到破坏判据的时长）"},
+            "failure_mode": {"type": ["string", "null"], "description": "失效模式描述"}
+          }
+        },
+        "oxide_layer": {
+          "type": "object",
+          "properties": {
+            "phases": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "氧化产物物相"
+            },
+            "thickness_um": {
+              "type": "object",
+              "properties": {
+                "min": {"type": ["number", "null"]},
+                "max": {"type": ["number", "null"]}
+              }
+            },
+            "morphology": {"type": ["string", "null"], "description": "形貌描述"},
+            "key_observation": {"type": ["string", "null"], "description": "关键观察"}
+          }
+        }
+      }
+    },
+    "measured_value": {
+      "type": "object",
+      "required": ["value", "unit", "original_value", "original_unit", "converted"],
+      "properties": {
+        "value": {"type": ["number", "null"], "description": "标准化后的值（mass_loss_rate → mg/cm²·s, linear_loss_rate → mm/s）"},
+        "unit": {"type": "string", "description": "标准化单位"},
+        "original_value": {"type": ["number", "null"], "description": "论文原始值"},
+        "original_unit": {"type": ["string", "null"], "description": "论文原始单位"},
+        "converted": {"type": "boolean", "description": "是否经过单位换算"}
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": ["confidence", "flags"],
+      "properties": {
+        "confidence": {
+          "type": "string",
+          "enum": ["高", "中", "低"],
+          "description": "数据可信度。高=必填字段完整且数值可信；中=有关键缺失但核心数据可提取；低=仅定性描述"
+        },
+        "flags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "质量标记标签"
+        },
+        "reviewer_notes": {"type": ["string", "null"], "description": "人工核查备注"}
+      }
+    }
+  }
+}

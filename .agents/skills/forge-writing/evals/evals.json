@@ -1,0 +1,23 @@
+{
+  "skill_name": "forge-writing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我润色这段中文论文引言草稿，去掉AI腔：\n\n值得注意的是，近年来，随着超高温陶瓷研究的快速发展，HfC基复合材料在航天热防护系统领域中扮演着至关重要的角色。众所周知，HfC具有极高的熔点（3890°C），这使其在极端高温环境中具有重要意义。然而，HfC在高温氧化环境中的抗烧蚀性能仍存在不足，这对其实际应用产生了不可忽视的影响。综上所述，如何提高HfC基材料的抗烧蚀性能已引起了广泛关注。",
+      "expected_output": "润色后应移除以下AI虚词和模板化开篇：'值得注意的是'、'近年来，随着…的快速发展'、'扮演着至关重要的角色'、'众所周知'、'具有重要意义'、'综上所述'、'引起了广泛关注'、'产生了不可忽视的影响'。替换为具体的时间/数据/机制描述。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Polish this English paragraph — it was machine-translated from Chinese and has AI clichés:\n\nIt is worth noting that, with the rapid development of aerospace technology, ultra-high temperature ceramics play a crucial role in thermal protection systems. It is well known that HfC possesses an extremely high melting point of 3890°C. Under the condition of high-temperature oxidation, the ablation resistance of HfC still exhibits significant deficiencies, which has an important influence on its practical application. The results indicate that improving the ablation resistance has garnered significant attention. Furthermore, the oxidation mechanism remains to be further elucidated.",
+      "expected_output": "Should remove: 'It is worth noting that', 'with the rapid development of', 'play a crucial role', 'It is well known that', 'Under the condition of', 'exhibits', 'has an important influence on', 'The results indicate that', 'has garnered significant attention', 'Furthermore'. Replace with direct, active statements with specific data where possible.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "润色这段 Discussion 草稿，去掉 AI 腔和模板化表达，但保留数据和引文不变：\n\n本节将讨论 HfC₀.₇₆N₀.₂₄ 的抗烧蚀机制。首先，我们需要明确，N 掺杂对氧化物层微观结构的影响是多方面的。如前所述，Peng2025 报道了 N 掺杂 HfC 的 Rd 降低了 9 倍。我们的结果表明，N 掺杂通过改变氧化物熔体的聚合度来抑制氧扩散，这与 Peng2025 提出的物理阻挡机制存在本质不同。由此可见，N 的化学增粘效应是性能改善的主要原因。值得注意的是，本研究仍存在一些局限性，例如仅在 HfC 体系中验证了这一机制，在 ZrC 和 TaC 体系中是否成立尚有待进一步研究。",
+      "expected_output": "应删除：'本节将讨论'、'首先，我们需要明确'、'如前所述'、'我们的结果表明'（改为更直接的表达）、'由此可见'、'值得注意的是'。保留：Peng2025 引用、Rd 降低 9 倍的数据、N 增粘 vs 物理阻挡的对比、HfC/ZrC/TaC 体系局限性。",
+      "files": []
+    }
+  ]
+}

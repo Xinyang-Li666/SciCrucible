@@ -1,6 +1,6 @@
 # SciCrucible — 科学智能知识库框架
 
-> 一套 Claude Code skills + 脚本 + 行为规则，LLM 增量编译式个人知识库 —— 从文献摄入到学术写作的全闭环
+> 一套 Agent skills + 脚本 + 行为规则，LLM 增量编译式个人知识库 —— 从文献摄入到学术写作的全闭环
 
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
@@ -31,14 +31,22 @@ SciCrucible 是一套**框架**——不是成品知识库，而是帮你**构�
 | 写论文 Introduction / Discussion | `/forge-writing` 文献锚定型写作，逐段交互起草 |
 | 构建实验数据库（如烧蚀/氧化） | `/forge-extract` 检索→筛选→下载→提取→结构化 JSON 数据库 |
 
+## 本次更新与发布边界
+
+新增有界本地证据查询、PDF 摄入预检与可验证的会话交接工具，并补充跨 Agent 接入说明。入口分别为 `scripts/evidence_query.py`、`scripts/ingest_prepare.py` 和 `scripts/session_handoff.py`。
+
+**进阶材料建库与复核管线仍在本地验证和发布审计中，本次未完整公开。** 下文旧版 `/forge-extract` 命令不代表已具备本地最新版的全部能力。克隆公开仓库后，请以 [发布状态](docs/release-status.md) 判断入口是否可用；不可将未发布脚本当作已安装依赖。
+
+其他 Agent 从 [接入指南](docs/agent-quickstart.md) 开始，并按需采用 [公共指令模板](AGENTS.public.md)。当前测试结果与限制见发布状态，不宣称全量测试通过。
+
 ## 快速开始
 
 ### 0. 前置条件
 
-- [Claude Code](https://claude.ai/code)（通过 CLI 或 IDE 扩展）
+- 能读取项目技能与执行本地脚本的 Agent；现有 `.claude/skills/` 保留 Claude Code 兼容入口，其他 Agent 见 [接入指南](docs/agent-quickstart.md)
 - [SciMaster CLI](https://scimaster.ai)（可选，用于文献发现功能）
 - [scansci-pdf](https://github.com/nick-cn/scansci-pdf)（可选，用于文献下载功能）
-- Python 3.10+
+- Python 3.11+
 
 ### 1. 克隆仓库
 
@@ -205,6 +213,16 @@ Fork 后你需要做的：
 
 ## 完整文档
 
+### 可溯源材料数据集与Materials Project
+
+以下为本地进阶扩展设计，完整实现尚未随本次公开发布。文献数据按领域配置经过prepare→复核→stage→显式commit→按用途export，兼容烧蚀、热力学和金属力学等方向。MP计算数据独立保存，不作为实验值，也不按相同化学式自动匹配样品。公开可用范围与后续发布条件见[发布状态](docs/release-status.md)。
+
+MP客户端可读取显式本地配置中的external_services.materials_project.api_key；未指定配置时读取MP_API_KEY环境变量。不要把Key写入命令、仓库或导出文件。支持旧数字MPID与官方AlphaID的确定性别名校验，保留提供方原始返回身份。请求有材料数/次数上限，不重试、不自动翻页、不自动入库。
+
+并非每个材料都有能量或弹性性质。没有记录、字段未返回、提供方null、数值0和请求失败分别留痕；分页完整性未知时不能通过来源暂存。结构JSON及指纹只针对实际返回内容，不代表弛豫、物理稳定或与性质计算任务同结构。复核夹具通过不代表真实科研准确率或训练适用性通过。
+
+本地实测记录属于私人评测产物，未随本次发布；离线夹具不能代替联网验收。
+
 详见 **[MANUAL.md](./MANUAL.md)** —— 包含安装配置、场景化工作流、维护指南。
 
 ## 致谢
@@ -212,7 +230,6 @@ Fork 后你需要做的：
 SciCrucible 深度依赖以下项目：
 
 - **[scansci-pdf](https://github.com/nick-cn/scansci-pdf)** —— 学术文献智能下载引擎，感谢作者的开源贡献
-- **[Claude Code](https://claude.ai/code)** —— LLM 运行时
 - **[SciMaster](https://scimaster.ai)** —— 学术文献检索
 - **[OpenAlex](https://openalex.org/)** · **[Semantic Scholar](https://semanticscholar.org/)** —— 开放学术数据
 

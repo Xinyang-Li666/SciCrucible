@@ -1,14 +1,42 @@
-"""Extract text from a PDF file using pymupdf (fitz)."""
+"""Page-addressable extraction; PyMuPDF or installed Poppler, no downloads."""
 import sys
-import fitz
+import re
+import shutil
+import subprocess
+
+
+def extract_pages(pdf_path):
+    try:
+        import fitz
+    except ImportError:
+        if not shutil.which('pdftotext') or not shutil.which('pdfinfo'):
+            raise RuntimeError('Install PyMuPDF or provide pdfinfo and pdftotext on PATH')
+        info = subprocess.run(['pdfinfo', str(pdf_path)], capture_output=True,
+                              timeout=60, check=True)
+        match = re.search(rb'Pages:\s+(\d+)', info.stdout)
+        if not match:
+            raise ValueError('Cannot determine PDF page count')
+        count = int(match.group(1))
+        output = subprocess.run(['pdftotext', '-layout', '-enc', 'UTF-8', str(pdf_path), '-'],
+                                capture_output=True, timeout=120, check=True)
+        pages = output.stdout.decode('utf-8').split('\f')
+        if pages and not pages[-1].strip():
+            pages.pop()
+        if len(pages) != count:
+            raise ValueError('PDF page count and extracted page boundaries disagree')
+        return pages
+    with fitz.open(pdf_path) as doc:
+        if doc.needs_pass:
+            raise ValueError('Encrypted PDF requires a password')
+        return [page.get_text() for page in doc]
+
+
+def render_pages(pages):
+    return '\n\n'.join(f'<!-- PDF page {i} -->\n{text}'
+                        for i, text in enumerate(pages, 1))
 
 def extract_text(pdf_path: str) -> str:
-    doc = fitz.open(pdf_path)
-    texts = []
-    for page in doc:
-        texts.append(page.get_text())
-    doc.close()
-    return "\n".join(texts)
+    return render_pages(extract_pages(pdf_path))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

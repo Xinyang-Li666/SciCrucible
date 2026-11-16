@@ -1,665 +1,73 @@
-﻿# SciCrucible 用户手册
+# SciCrucible 用户手册
 
-> 基于 LLM 增量编译模式构建 · 从文献摄入到学术写作的全闭环
+> 本手册区分公开工具与本地进阶扩展。首先阅读 [发布状态](docs/release-status.md)。
 
----
-
-## 零、环境准备与安装
-
-### 0.1 你需要什么
-
-| 组件 | 用途 | 必需？ |
-|------|------|:---:|
-| **Claude Code** | LLM 驱动核心（所有 /forge-* 命令） | ✅ 必需 |
-| **Python 3.9+** | PDF 文本提取、去重脚本、预过滤 | ✅ 必需 |
-| **Bash**（Git Bash / WSL / macOS Terminal） | `forge-ingest.sh`、`forge-health.sh` | ✅ 必需 |
-| **SciMaster CLI**（`sci`） | `/forge-discovery` 和 `/forge-weekly` 文献检索 | 主动发现需要 |
-| **scansci-pdf MCP Server** | 论文 PDF 下载 | 主动发现需要 |
-| **期刊评级表**（`journal-ratings.xlsx`） | 期刊质量评估 | 推荐 |
-
-**操作系统**：Windows（Git Bash 或 WSL）、macOS、Linux 均可。本手册以 Windows + Git Bash 为例。
-
-### 0.2 安装 Claude Code
-
-参考 [Claude Code 官方文档](https://docs.anthropic.com/en/docs/claude-code) 安装：
+## 安装与目录
 
 ```bash
-# npm 全局安装（推荐）
-npm install -g @anthropic-ai/claude-code
-
-# 验证
-claude --version
+git clone git@github.com:Xinyang-Li666/SciCrucible.git
+cd SciCrucible
+python --version
 ```
 
-启动 Claude Code 后，它会自动读取项目根目录的 `CLAUDE.md` 作为项目指令。
+建议 Python 3.11+。所有命令均从仓库根目录执行；不需要在根目录内再建立一层 SciCrucible。Agent 应能读取 Markdown 技能并调用本地脚本。现有 `.claude/skills/` 是兼容入口，其他 Agent 的配置见 [接入指南](docs/agent-quickstart.md)。
 
-### 0.3 获取 SciCrucible
+按实际操作安装依赖：PDF 解析需要 `pymupdf`，期刊评级表读取需要 `openpyxl`。部分进阶扩展另需 `pdfplumber` 等依赖，不能把缺依赖误报成无数据。SciMaster CLI 与 scansci-pdf 为文献发现/下载的可选集成，配置凭据留在本地，不提交到 Git。已有宿主工具可按授权范围使用，不要求所有用户采用同一模型服务。
+
+根目录包含 README、MANUAL、兼容技能与 scripts；运行时知识分别保存在 `raw/`、`wiki/`、`brainstorming/`、`database/` 等本地目录。它们不随框架发布。课题项目目录与知识库平级，使用 `../projects/<课题>/{data,figures,draft,notes}/`。
+
+## 配置研究方向
+
+读取你所用 Agent 的项目指令。可参考 [AGENTS.public.md](AGENTS.public.md) 写入自己的 AGENTS.md；兼容运行环境可读取 CLAUDE.md。替换课题名称与本机路径，保留来源、授权和错误处理规则。按需配置发现技能中的 weekly.yaml、期刊评级表与下载工具。不要上传私人论文、笔记、数据库、API Key、运行账本或评测答案。
+
+## 文献摄入
+
+将新 PDF 放入 `raw/new-papers/`，先做本地预检：
 
 ```bash
-# 方式一：Git 克隆（推荐）
-git clone <你的仓库地址> <你的项目根目录>
-cd <你的项目根目录>
-
-# 方式二：直接下载解压到项目根目录
+python -B scripts/ingest_prepare.py raw/new-papers/
 ```
 
-**目录布局**：确保 `CLAUDE.md` 在项目根目录，`SciCrucible/` 为子目录（参见下方 §一 的完整目录树）。
+Windows 可使用 `scripts/forge-ingest.ps1`，Bash 可使用 `scripts/forge-ingest.sh`。预检生成 `.kiro/.ingest_cache/` 中的 manifest、缓存文本与报告。ready 仅表示自动检查完成；needs_review、error 必须核对。DOI 候选、页数与稀疏文本警告不能代替人工确认。预检不会完成 wiki 编译或自动移动原始论文。
 
-### 0.4 安装 Python 依赖
+随后让 Agent 读取 `forge-ingest/SKILL.md`，执行内容核对、笔记编译、索引维护与归档。文献页写入 `wiki/<课题>/literature/`，共享同一机制的知识合并到中颗粒度概念页，通用机制写入 `wiki/通用/`，用双链互联，增量追加而非覆盖。
+
+## 本地查询与科研讨论
+
+先轻量探测：
 
 ```bash
-pip install openpyxl   # 读取期刊评级表 Excel
+python -B scripts/evidence_query.py probe --query "材料 性质 机制"
 ```
 
-### 0.5 验证安装
+probe 会刷新轻量目录，无需先 build。最多输出 5 个候选、合计默认 1600 字符；对相关候选优先原样采用其 `read_args`，再运行 expand。数据库只选择所需记录、字段和数量；记录 ID 使用可重复的 `--record-id`，字段使用 `--columns`。`--where` 是 JSON 精确匹配，不是 SQL。先用 `expand --help` 核对参数。
+
+必须区分匹配数、返回数与截断原因。错误不是无记录，空候选只表示本地未匹配。回答给出笔记路径/行号或记录定位。相同问题且证据指纹未变时复用已读证据；新增条件或证据不足才继续检索。私人内容不发送到外部插件。
+
+## 写作、发现与维护
+
+按对应技能使用 forge-search、forge-think、forge-writing、forge-todo、forge-health。写作先梳理证据与大纲，再逐段起草并核对引用；缺失证据明确标记。主动发现/每周更新依赖可选检索与下载工具，工具失败如实报告，不宣称检索无结果。
+
+## 进阶材料建库：本地扩展工作流
+
+**本节是接入契约，完整管线尚未公开，不是克隆后即可执行的操作教程。** 查看 [发布状态](docs/release-status.md)，确认实现与领域配置可用后才执行。
+
+主入口为 forge-db：审计 → 冻结计划 → 子代理执行 → 主代理独立验收 → 授权停点。forge-extract 负责冻结文献与逐字段证据绑定；领域 profile 定义性质、单位、关键条件和可空性，mapping 绑定原字段。流程为 prepare → gate/复核 → stage → 显式 commit → export。stage 不等于正式入库，离线测试不等于真实科研准确性。
+
+复核由 review-cycle 生成请求，只发送 pending-requests.json；held-requests.json 不发送。用 review-cycle-finish 合并回答并暂存。模型失败不自动重试；conflict/insufficient 不自动重问，查原文或隔离。字段、来源或配置变更要重新核对指纹和复核适用性。
+
+固定来源集的常驻 grant 须经用户明确批准，可在范围内跨篇复用；每批仍需新的授权文件与账本，核对来源哈希、模型、额度和 grant 指纹。宿主审批、门禁放宽与每次正式入库授权分别遵守。进阶批次按适用的 batch_check 子命令检查 prepared、cycle、auth、regions；cataloged 只按提示修复一次，uncataloged/checker_failed 停报。
+
+MP 计算数据使用独立来源适配，不能当作实验事实或按同化学式自动匹配样品。Key 仅从本地凭据或 MP_API_KEY 环境变量读取；缺记录、缺字段、null、0 与失败分别留痕，不自动翻页、重试或入库。
+
+## 会话交接与验证
+
+一篇文献或一个小批次一会话。完成后编写符合脚本 schema 的输入，运行 `python -B scripts/session_handoff.py write --input <输入JSON> --output <新交接文件>`，绑定完成工件哈希、范围、授权引用、阻塞项与 next_command。脚本不推断批次状态。
+
+下一批开启全新会话，不 resume/fork，先运行：
 
 ```bash
-# 检查必需组件
-claude --version        # Claude Code 可用？
-python --version        # Python 3.9+ 可用？
-bash --version          # Bash 可用？
-
-# 检查 skills 存在
-ls SciCrucible/.claude/skills/forge-ingest/SKILL.md
-ls SciCrucible/.claude/skills/forge-health/SKILL.md
+python -B scripts/session_handoff.py check --handoff <交接文件>
 ```
 
-全部通过后，继续下一节的配置。
-
----
-
-## 一、知识库是什么
-
-这是一个由 LLM 维护的**增量编译式**个人知识库。不同于传统的文件夹归档（你手动整理），也不同于 RAG（每次查询才处理），它的核心理念是：
-
-> **每次摄入新知识时，LLM 自动编译成结构化 wiki 页面。每次查询后，有价值的见解回流到 wiki。知识库越用越聪明。**
-
-类比：
-- `raw/` = 图书馆书库（原始 PDF，不可变）
-- `wiki/` = 维基百科（LLM 维护的结构化知识）
-- `brainstorming/` = 实验笔记本（想法、待办、探索）
-- `manuscripts/` = 发表成果（完成的手稿 PDF）
-- `projects/` = 你的实际科研目录（数据、图表、手稿草稿）
-
-你的角色是**策展人和提问者**，LLM 做所有整理、交叉引用、格式维护的劳动者。
-
----
-
-## 二、知识库结构
-
-```
-<你的项目根目录>/
-├── CLAUDE.md                      ← Claude Code 项目指令
-├── SciCrucible/
-│   ├── README.md                   ← 项目入口
-│   ├── MANUAL.md                   ← 本手册
-│   ├── journal-ratings.xlsx         ← 期刊评级基准
-│   │
-│   ├── raw/                       ← 第 1 层：不可变原始素材
-│   │   ├── new-papers/            ←    新文献暂存区（待摄入）
-│   │   ├── papers/                ←    已摄入 PDF（按课题分文件夹）
-│   │   └── search-results/        ←    主动发现输出
-│   │       ├── json/              ←      sci search JSON
-│   │       ├── bib/               ←      sci search BibTeX
-│   │       ├── reports/           ←      检索报告
-│   │       └── batches/           ←      批次状态
-│   │
-│   ├── wiki/                      ← 第 2 层：LLM 维护的结构化知识（按课题分层）
-│   │   ├── index.md               ←    全局索引入口
-│   │   ├── literature_index.json  ←    DOI 索引缓存（O(1) 去重查重）
-│   │   ├── <课题A>/               ←    如「超高温陶瓷」
-│   │   │   ├── concepts/          ←      概念页（中颗粒度分组，80-250 行）
-│   │   │   ├── literature/        ←      文献笔记（标注期刊评级）
-│   │   │   ├── methods/           ←      课题专用方法页
-│   │   │   └── projects/          ←      项目综述（8 章框架）
-│   │   ├── <课题B>/               ←    如「锂离子电池正极材料」（同上四类）
-│   │   └── 通用/                  ←    跨课题共享
-│   │       ├── concepts/          ←      通用概念（掺杂/热力学/氧化理论…）
-│   │       └── methods/           ←      通用方法（DFT/MD/机器学习势…）
-│   │
-│   ├── brainstorming/             ← 第 3 层：思考与探索
-│   │   ├── ideas/                 ←    设计文档与方法论
-│   │   ├── sessions/              ←    协作思考会话记录
-│   │   ├── todos.md               ←    待办清单
-│   │   └── questions.md           ←    开放问题列表
-│   │
-│   ├── manuscripts/               ← 第 4 层：手稿定稿 PDF
-│   │
-│   ├── .kiro/                     ← LLM 行为规则与摄入缓存
-│   │   └── .ingest_cache/         ←    摄入临时文件
-│   │
-│   ├── .claude/skills/            ← Claude Code skill 定义
-│   │   ├── forge-discovery/       ←    主动文献发现
-│   │   │   ├── SKILL.md
-│   │   │   ├── scripts/dedup.py
-│   │   │   ├── config/weekly.yaml
-│   │   │   └── references/sci-cli.md
-│   │   ├── forge-ingest/          ←    文献摄入
-│   │   ├── forge-weekly/          ←    每周速递
-│   │   ├── forge-search/          ←    知识库查询
-│   │   ├── forge-think/           ←    协作思考
-│   │   ├── forge-todo/            ←    待办管理
-│   │   ├── forge-health/          ←    健康检查
-│   │   ├── forge-writing/         ←    学术写作
-│   │   └── forge-extract/          ←    通用实验数据提取
-│   │       ├── SKILL.md             ←    三阶段流程 + 8 问 Q&A 向导
-│   │       ├── scripts/             ←    normalize_units.py, validate_schema.py, merge_to_db.py...
-│   │       ├── references/          ←    schema 定义与字段指南（烧蚀示例）
-│   │       └── evals/
-│   │
-│   └── scripts/                   ← 辅助脚本
-│       ├── extract_pdf.py         ←    PDF 文本提取
-│       ├── forge-ingest.sh        ←    摄入流程
-│       └── forge-health.sh        ←    链接/孤立检测
-│
-├── projects/                      ← 你的实际科研目录（与 SciCrucible/ 平级）
-│   ├── <课题1>/
-│   │   ├── data/                  ← 原始数据与计算结果
-│   │   ├── figures/               ← 图表
-│   │   ├── draft/                 ← 手稿草稿
-│   │   └── notes/                 ← 项目笔记
-│   └── <课题2>/
-│       └── ...
-```
-
-### 数据流（全闭环）
-
-```
-┌────────── 被动摄入 ────────────────────────────────┐
-│                                                       │
-│  PDF 文献 ──→ raw/new-papers/       ← 放这里          │
-│                  │                                    │
-│                  ▼ /forge-ingest（批量）                  │
-│              wiki/<课题>/literature/ ──→ concepts/    │
-│                  │                                    │
-│                  ▼ 摄入完成后                          │
-│              PDF 移至 raw/papers/    ← 已归档          │
-│                  │                                    │
-│                  ▼                                    │
-│              wiki/index.md + literature_index.json    │
-│                  │                                    │
-│                  ▼ /forge-search                         │
-│              用户查询 ──→ 综合回答 + 引用来源           │
-│                  │                                    │
-│                  ▼ (有价值时归档)                      │
-│              brainstorming/                           │
-│                                                       │
-└───────────────────────────────────────────────────────┘
-
-┌────────── 主动发现 ────────────────────────────────┐
-│                                                       │
-│  /forge-discovery "关键词"                               │
-│       │                                               │
-│       ▼ sci search（多角度检索）                       │
-│   raw/search-results/json/*.json                      │
-│       │                                               │
-│       ▼ dedup.py（DOI 去重 + literature_index 查重）   │
-│   [新文献列表]                                         │
-│       │                                               │
-│       ▼ 用户勾选 → scansci-pdf 下载                    │
-│   raw/new-papers/                                     │
-│       │                                               │
-│       ▼ /forge-ingest（手动触发或 /forge-weekly 自动）       │
-│   wiki/<课题>/literature/ + concepts/                 │
-│                                                       │
-└───────────────────────────────────────────────────────┘
-
-┌────────── 学术写作（输出）────────────────────────────┐
-│                                                       │
-│  /forge-writing "写LNO掺杂的Introduction"                 │
-│       │                                               │
-│       ▼ 三阶深挖（KB摸底 + 文献锚定 + 创新锚定）       │
-│   [结构化写作摘要]                                     │
-│       │                                               │
-│       ▼ 用户确认大纲 → 逐段起草（一段一审）            │
-│   draft/*.md                                          │
-│                                                       │
-└───────────────────────────────────────────────────────┘
-```
-
----
-
-## 三、安装与配置
-
-> **配置顺序**：先配 Claude Code MCP（scansci-pdf），再装 SciMaster CLI。两者独立，可并行进行。
-
-### 3.1 Claude Code MCP 配置（scansci-pdf 文献下载）
-
-scansci-pdf 是一个开源的学术论文下载 MCP Server，支持 13+ 下载源、多所大学 WebVPN、Tor 匿名网络。**`/forge-discovery` 和 `/forge-weekly` 依赖它完成文献下载。**
-
-> 💡 **致谢**：本文献下载功能基于开源项目 **scansci-pdf**。感谢作者为学术界提供了这样一个强大、易用的论文获取工具，免去了手动逐个下载和格式转换的繁琐。如果你觉得有用，欢迎给项目加星 ⭐。
-
-#### Step 1 — 找到 Claude Code 配置文件
-
-Claude Code 的 MCP Server 配置文件位置：
-
-| 操作系统 | 路径 |
-|----------|------|
-| Windows | `%APPDATA%\.claude\claude-code.json` 或 `%USERPROFILE%\.claude\claude-code.json` |
-| macOS | `~/.claude/claude-code.json` |
-| Linux | `~/.claude/claude-code.json` |
-
-如果文件不存在，手动创建。以下以 Windows 为例：
-
-```powershell
-# 用记事本打开配置文件
-notepad "$env:USERPROFILE\.claude\claude-code.json"
-```
-
-#### Step 2 — 添加 scansci-pdf MCP Server
-
-在 `mcpServers` 中添加：
-
-```json
-{
-  "mcpServers": {
-    "scansci-pdf": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "scansci-pdf-mcp"
-      ],
-      "env": {
-        "SCANSCI_PDF_OUTPUT_DIR": "D:/科研/SciCrucible/raw/new-papers",
-        "SCANSCI_PDF_CACHE_DIR": "D:/科研/SciCrucible/.cache/scansci"
-      }
-    }
-  }
-}
-```
-
-**字段说明**：
-
-| 字段 | 说明 |
-|------|------|
-| `type` | 固定为 `"stdio"` |
-| `command` | `npx`（Node.js 包运行器，安装 Node.js 后自带） |
-| `args` | `["-y", "scansci-pdf-mcp"]`，`-y` 表示自动确认安装 |
-| `SCANSCI_PDF_OUTPUT_DIR` | **必填**。PDF 下载目录，指向 `SciCrucible/raw/new-papers/` |
-| `SCANSCI_PDF_CACHE_DIR` | **推荐**。缓存目录，避免重复下载 |
-
-> ⚠️ **路径使用正斜杠** `/`，即使 Windows 也要用 `D:/科研/...` 而非 `D:\科研\...`。
-
-#### Step 3 — 重启 Claude Code
-
-配置保存后，**完全退出并重启 Claude Code**。启动后在对话中输入以下命令验证：
-
-```
-/scansci-pdf:health_check
-```
-
-如果返回各下载源状态，说明配置成功。
-
-#### Step 4 — 下载策略选择
-
-| 策略 | 命令参数 | 说明 |
-|------|---------|------|
-| **合法渠道**（默认） | `--strategy legal_only` | Elsevier API + OpenAlex OA + WebVPN + CARSI |
-| 最快路径 | `--strategy fastest` | 含 Sci-Hub 兜底，需用户显式允许 |
-| 仅开放获取 | `--strategy oa_first` | 优先 OA，不触发付费墙 |
-| 仅 Sci-Hub | `--strategy scihub_only` | 需用户允许 |
-
-**首次使用建议运行自动检测**：
-
-```
-/scansci-pdf:auto_setup
-```
-
-这会自动检测 Tor、浏览器、Sci-Hub 可用性，并给出缺失组件的安装建议。
-
-### 3.2 SciMaster CLI 安装与配置
-
-SciMaster CLI（命令行工具 `sci`）是主动文献发现的后端检索引擎，提供多模式学术检索能力。
-
-#### Step 1 — 安装
-
-参考 SciMaster 官方文档安装 `sci` 命令行工具。安装完成后验证：
-
-```bash
-sci --version   # 应输出版本号
-```
-
-#### Step 2 — 获取并配置 API Key
-
-1. 访问 SciMaster 官网注册账号
-2. 在个人设置页面获取 API Key
-3. 运行初始化命令：
-
-```bash
-sci init
-# 按提示粘贴 API Key
-```
-
-> ⚠️ **安全提醒**：API Key 存储在 `~/.scimaster/config.json`（用户目录），**不要**将其复制到 SciCrucible 项目目录中，也不要提交到 Git。SciCrucible 的 `.gitignore` 已配置排除相关路径。
-
-#### Step 3 — 验证配置
-
-```bash
-sci usage   # 查看剩余额度，确认认证成功
-```
-
-#### Step 4 — 检索模式与费用
-
-| 模式 | 费用 | LLM 排序 | 适用场景 |
-|------|------|:--:|------|
-| `ultra_low` | **免费** | 否 | 初扫锁定方向、宽网撒 |
-| `low` | 消耗额度 | 是 | 精选排序（默认），精度高 |
-| `mid` | 更多额度 | 是 | low 结果不理想时升级 |
-| `high` | 最多额度 | 是 | 最高精度需求 |
-
-**额度管理建议：**
-- `/forge-weekly` 先用 `ultra_low` 宽扫（免费），再精选 2-3 个方向用 `low`
-- `/forge-discovery` 默认 `low` 模式，每次消耗约 3×20 次检索
-- 定期运行 `sci usage` 查看余额
-
-### 3.3 机构订阅配置（可选，提升下载成功率）
-
-如果有大学/机构订阅，可进一步配置以下渠道。配置后 scansci-pdf 会自动尝试通过这些渠道下载付费论文。
-
-#### CARSI 登录（推荐）
-
-通过机构 SSO 统一认证访问出版社（支持 ScienceDirect、Springer、Wiley、IEEE 等）：
-
-```
-/scansci-pdf:carsi_login publisher=sciencedirect
-```
-
-首次使用时会打开浏览器，选择你的学校并完成统一认证登录。Cookie 会被自动保存，后续下载自动复用。
-
-#### WebVPN 登录
-
-通过学校 VPN 系统访问：
-
-```
-/scansci-pdf:vpnsci_set_school "你的大学名称"
-/scansci-pdf:vpnsci_login
-```
-
-> 支持国内大多数高校。运行 `/scansci-pdf:vpnsci_schools` 可搜索支持的学校列表。
-
-#### 浏览器 Cookie 导入
-
-如果已有有效的出版社登录状态，可直接导入浏览器 Cookie：
-
-```
-/scansci-pdf:import_browser_cookies
-```
-
-#### 网络诊断
-
-如果下载持续失败，运行网络诊断：
-
-```
-/scansci-pdf:network_diagnose
-```
-
-### 3.4 期刊评级表（期刊质量评估）
-
-仓库中已包含 `journal-ratings.xlsx`（期刊评级参考），无需额外下载。
-
-> ⚠️ **免责声明**：此文件为社区整理的期刊评级参考，非任何官方机构数据。评级信息仅供参考，用户需自行核实准确性。该数据按"原样"提供，不附带任何保证。
-
-**文件格式**：
-- 列：`期刊名称` | `评级`（1-4, 1 为最高） | `顶级`（是/否） | `Open Access`
-- `.xlsx` 格式
-
-如果没有评级表，文献摄入仍可正常进行，但会跳过期刊评级标注和文献脉络过滤。
-
-### 3.5 配置验证清单
-
-全部配置完成后，逐项验证：
-
-| # | 检查项 | 命令 | 通过标准 |
-|---|--------|------|---------|
-| 1 | Claude Code 可用 | `claude --version` | 输出版本号 |
-| 2 | Python 可用 | `python --version` | ≥3.9 |
-| 3 | Bash 可用 | `bash --version` | 输出版本号 |
-| 4 | Skills 存在 | `ls .claude/skills/forge-ingest/SKILL.md` | 文件存在 |
-| 5 | scansci-pdf 配置 | 在 Claude Code 中运行 `/scansci-pdf:health_check` | 显示各源状态 |
-| 6 | SciMaster CLI | `sci --version && sci usage` | 版本 + 额度 |
-| 7 | 评级表 | `ls journal-ratings.xlsx` | 文件存在 |
-| 8 | 目录结构 | `ls raw/new-papers/` | 目录存在（空） |
-
-全部通过 ✅ → 可以开始使用。运行 `/forge-health` 做最终验证。
-
----
-
-## 四、命令速查
-
-| 命令 | 用途 | 示例 |
-|------|------|------|
-| `/forge-ingest` | 批量摄入 new-papers/ 中所有 PDF | `/forge-ingest` |
-| `/forge-ingest <文件>` | 摄入单个文献 | `/forge-ingest raw/new-papers/xxx.pdf` |
-| `/forge-search <查询>` | 查询知识库 | 直接提问即可 |
-| `/forge-discovery "<关键词>"` | 主动检索新文献（多角度 sci search → 去重 → 下载） | `/forge-discovery "UHTC oxidation" --limit 20` |
-| `/forge-weekly` | 周报模式：自动扫描+精选+下载+摄入 | `/forge-weekly` |
-| `/forge-think` | 协作思考（围绕材料科学问题展开讨论） | `/forge-think 为什么 Hf 比 Zr 抗氧化但扩散更慢？` |
-| `/forge-todo` | 管理待办 | `/forge-todo 添加待办: ...` |
-| `/forge-health` | 健康检查 | `/forge-health` |
-| `/forge-writing` | 文献锚定型学术写作 | `/forge-writing 写LNO掺杂的Introduction` |
-| `/forge-extract` | 通用实验数据提取（Q&A配置向导→试点验证→全量检索入库） | `/forge-extract`（首次自动进入配置向导） |
-
----
-
-## 五、场景化工作流
-
-### 场景 A：阅读一篇新论文（被动摄入）
-
-```
-1. 下载 PDF → 放到 SciCrucible/raw/new-papers/
-2. /forge-ingest（批量处理 new-papers/ 中所有 PDF）
-3. 阅读 LLM 生成的摘要和关联
-4. 摄入完成后 PDF 自动移入 raw/papers/<课题>/
-5. 如果有想法：/forge-think 讨论
-6. 如有后续行动：/forge-todo 添加待办
-```
-
-### 场景 B：写论文时查询某个概念
-
-```
-1. 直接提问："掺杂如何影响 NCM 正极的表面氧空位形成能？"
-2. LLM 从知识库中综合答案，附文献出处
-3. 如果需要更深入：/forge-think 展开讨论
-4. 讨论中有价值的部分回写到 wiki
-```
-
-### 场景 C：记录实验/计算
-
-```
-1. 在 projects/<课题>/notes/ 下创建项目笔记
-2. 研究成果（手稿）在 projects/<课题>/draft/ 中撰写
-3. 定稿后将编译好的 PDF 复制到 SciCrucible/manuscripts/
-```
-
-### 场景 D：写论文 Introduction / Discussion
-
-```
-1. 发起写作：/forge-writing 写LNO掺杂抑制H2-H3相变的Introduction
-2. LLM 先梳理思路 → 搜索 KB → 提出大纲（每段标注 KB 支撑强度）
-3. 你审阅大纲 → 调整段落结构 → 确认
-4. LLM 逐段起草（一段一审），每段自动引用文献 + 辩证自检
-5. 全部段落完成后综合审校 → 输出 .md 文件
-6. 定稿 .md → 导入到 projects/<课题>/draft/ 继续编辑
-```
-
-### 场景 E：主动发现新文献（定向检索）
-
-```
-1. 发起检索：/forge-discovery "高熵碳化物抗氧化烧蚀" --limit 20
-2. LLM 分解为 3 个检索角度 → sci search 多角度检索
-3. dedup.py 自动去重（对比 literature_index.json 中已摄入文献）
-4. 终端显示精简列表（一行一篇，含期刊、分区、相关度评分）
-5. 你勾选感兴趣的文献：E1 E3 E5
-6. scansci-pdf 批量下载 PDF → raw/new-papers/
-7. 手动 /forge-ingest 摄入下载的 PDF
-```
-
-### 场景 F：每周文献速递（周报自动化）
-
-```
-1. 周一运行：/forge-weekly
-2. LLM 按 weekly.yaml 配置的关键词，多课题 ultra_low 免费初扫
-3. 精选 2-3 个最有前景方向 → low 模式高精度复跑
-4. 去重 + 质量筛选（期刊评级过滤）
-5. 推送精简报告（3-5 篇/课题）
-6. 你确认后：自动下载 + 自动逐篇摄入
-7. 摄入完成后输出摘要：新增概念、更新概念页、新增文献笔记
-```
-
-### 场景 G：协作思考（深入讨论材料科学问题）
-
-当你在研究或阅读中遇到困惑时，直接用自然语言与 LLM 展开讨论：
-
-```
-/forge-think 为什么 HfC 比 ZrC 抗氧化，但在高熵碳化物中 Ti 反而扩散最快？
-```
-
-LLM 会：
-1. 从知识库中检索相关文献和概念页
-2. 从热力学（Ellingham 图）和动力学（Fick 扩散、Wagner 氧化理论）两个框架分析
-3. 对比碳化物、硼化物、氮化物体系中的异同
-4. 提出跨领域类比（如 UHTC 的优先氧化 ↔ 正极的阳离子混排）
-5. 识别知识空白并建议下一步实验/计算方向
-
-常见用法：
-
-```
-/forge-think 优先氧化能否用 DFT 的氧吸附能来预测？
-/forge-think 高熵碳化物的鸡尾酒效应在氧化中有体现吗？
-/forge-think 正极的 H2→H3 相变和 UHTC 的氧化层剥落有没有共同的力学根源？
-```
-
-讨论中有价值的见解会自动提示你归档到 `brainstorming/`。
-
-### 场景 H：构建实验数据库（通用数据提取管道）
-
-```
-──── 首次使用 ────
-1. 发起：/forge-extract
-2. LLM 进入 Q&A 配置向导（8 问）：
-   Q1 数据集名称/领域 → Q2 测试方法 → Q3 测量指标 → Q4 单位标准
-   Q5 样品字段 → Q6 筛选标准 → Q7 检索关键词 → Q8 质量判据
-3. 自动生成 3 个配置文件：
-   database/configs/<name>.yaml + -schema.json + -fields.md
-
-──── 试点验证 ────
-4. Phase 2: 3-5 篇试点检索 → 提取 → 逐篇审阅
-5. 用户反馈迭代 → 配置锁定
-
-──── 全量提取 ────
-6. Phase 3: 多角度 sci search → 已入库 DOI 过滤 → 摘要筛选
-7. 用户确认 → scansci-pdf 批量下载 PDF
-8. PyMuPDF4LLM PDF→MD → LLM 逐篇提取结构化 JSON
-9. Python Pipeline: normalize_units → normalize_composition → validate_schema → dedup_check → merge_to_db
-10. 记录已处理 DOI → 质量报告
-11. 后续运行：/forge-extract --config <name> 直接进入 Phase 3 追加数据
-```
-
----
-
-## 六、核心基础设施
-
-### 文献去重系统
-
-`literature_index.json` 是 DOI → 元数据的索引缓存，支持 O(1) 查重：
-
-```
-/forge-discovery 检索到新文献
-       │
-       ▼ dedup.py
-  ┌─ 1. 查 literature_index.json（O(1)，优先）
-  │     - DOI 命中 → 排除（已摄入）
-  │     - DOI 缺失 → 标题归一化比对
-  │
-  └─ 2. Fallback：实时正则解析 wiki/**/literature/*.md（递归覆盖各课题）
-        - 索引文件损坏/不存在时自动回退
-```
-
-每次 `/forge-ingest` 摄入新文献后，自动更新 `literature_index.json`。
-
-### 期刊质量过滤
-
-基于 `journal-ratings.xlsx`，所有文献摄入时自动标注期刊评级：
-
-| 评级 | 文献脉络策略 |
-|------|-------------|
-| 评级1/顶级 / 评级1 / 评级2/顶级 / 评级2 | 优先引用，进入项目页文献脉络 |
-| 评级3 / 评级4 | 正常摄入，但不进入项目页文献脉络（除非无可替代） |
-
-### 概念页健康评分
-
-`/forge-health` 对每个概念页评估 100 分制健康评分：
-- 行数 >300 行：-15 分；>500 行：-15 分
-- 关联文献 >15 篇：-10 分
-- 超过 6 个月未更新：-20 分；超过 12 个月：-15 分
-- 叙述性段落 <3 句：-15 分
-
----
-
-## 七、维护知识库
-
-### 定期健康检查
-
-建议**每月一次**：`/forge-health`
-
-检查内容：
-- 断链、孤立页面、过期内容
-- DOI 覆盖率（缺失率 >10% 警告）
-- 索引一致性（literature_index.json vs 实际文献页）
-- 概念页健康评分（最低分 3 个标红）
-- 概念缺失（文献中提到但 concepts/ 中未定义的概念）
-
-### 摄入节奏
-
-- `raw/new-papers/` 支持批量放入多篇 PDF，`/forge-ingest` 一次性处理
-- **每批 ≤5 篇**，让 LLM 有足够注意力做深度编译
-- 摄入后花几分钟阅读生成的 wiki 页面，确认理解正确
-- 在文献笔记的"与我的工作关联"部分手动补充
-
-### 双链文化
-
-- 在 wiki 页面中积极使用 `[[双链]]`
-- `[[概念名]]` → `<课题>/concepts/` 或 `通用/concepts/` | `[[文献标题]]` → `<课题>/literature/` | `[[方法名]]` → `<课题>/methods/` 或 `通用/methods/` | `[[projects/项目名]]` → `<课题>/projects/`
-- 双链按 basename 解析，与所在课题目录无关；`[[projects/项目名]]` 用路径尾段消歧（概念页与项目页可同名）
-- 当你发现两个概念相关但未链接时，手动加上
-
-### 内容质量标准
-
-- 材料科学概念必须有准确定义
-- 文献笔记必须包含：研究概述、组分-条件-性质-机制闭环、结构化关键发现（四字段）、分流方法表、与自身工作的关联
-- 不确定的内容用 `[待验证]` 标记
-- 过时内容用 `[待更新: YYYY-MM-DD]` 标记
-- 不覆盖已有内容，增量追加
-
-### weekly.yaml 关键词维护
-
-`skills/forge-discovery/config/weekly.yaml` 控制 `/forge-weekly` 的检索范围。研究方向变化时更新此文件：
-- 每个课题 4-8 个关键词
-- 覆盖核心方向 + 边缘探索方向
-- 连续 4 周摄入率为 0 的关键词 → 考虑替换
-
----
-
-## 八、自定义研究方向
-
-本知识库默认预置了材料科学方向作为示例。修改为你的研究方向：
-
-1. **编辑 `CLAUDE.md`**：修改标题行和研究领域
-2. **编辑 `weekly.yaml`**：替换 `topics` 为你的课题和关键词
-3. **编辑 `wiki/index.md`**：修改专题组结构和核心概念
-4. **运行 `/forge-health`**：确认所有配置生效
-
----
-
-## 九、致谢
-
-SciCrucible 建立在以下开源工具和服务之上：
-
-- **[scansci-pdf](https://github.com/nickyoung-hk/scansci-pdf)** — 学术论文下载 MCP Server。支持 13+ 下载源、多所大学 WebVPN、Tor 匿名网络，是本项目文献获取的核心基础设施。感谢作者的杰出工作 🙏
-- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** — Anthropic 的 LLM 编程助手，驱动所有 `/forge-*` 命令的智能行为
-- **[SciMaster](https://scimaster.bohrium.com)** — 学术文献检索 API，提供多模式检索与 LLM 排序能力
-- **[OpenAlex](https://openalex.org)** — 开放学术图谱，提供 DOI 元数据解析
-- **[Semantic Scholar](https://semanticscholar.org)** — 学术搜索引擎，提供文献元数据补充
-
-> 最后更新：2026-07-21（新增 forge-extract 烧蚀数据提取管道；forge-writing 全面优化支持 IMRD 四段独立路由；skills 目录树同步）
+通过后只读取 next_command 所需文件。响应超过 150 次或单次输入超过 150k tokens 时到安全节点交接。代码改动后运行相关检查及全量 unittest，与实际基线比较；发布状态已列出当前限制，不将失败隐藏为通过。

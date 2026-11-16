@@ -1,12 +1,12 @@
-# SciCrucible — 科学智能知识库框架
+# SciCrucible v2.0.0 — 科学智能知识库
 
-> 一套 Agent skills + 脚本 + 行为规则，LLM 增量编译式个人知识库 —— 从文献摄入到学术写作的全闭环
+> 基于 Claude 的科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
 
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
 ## 这是什么
 
-SciCrucible 是一套**框架**——不是成品知识库，而是帮你**构建自己知识库**的工具链。你只需提供 PDF 论文和配置，SciCrucible 自动完成：
+SciCrucible 是基于 Claude 的科学智能知识库框架，也提供其他 Agent 可读取的技能与操作契约。它帮助你构建自己的知识库，串联文献摄入、知识分析、科学讨论与学术写作。你只需提供 PDF 论文和配置，SciCrucible 自动完成：
 
 - 文献元数据提取 → 结构化笔记（组分-条件-性质-机制闭环）
 - 概念自动聚合（中颗粒度：共享同一物理机制的合并）
@@ -17,6 +17,10 @@ SciCrucible 是一套**框架**——不是成品知识库，而是帮你**构�
 - 文献锚定型学术写作
 
 **核心思路**：你负责阅读和思考，LLM 负责编译和组织。知识库越用越聪明。
+
+## 四阶段使用路由
+
+文献摄入使用 `forge-ingest`，将原始论文编译为可追溯笔记；知识分析使用 `forge-search`，先查本地证据再综合；科学讨论使用 `forge-think`，围绕机制、假设与开放问题展开；学术写作使用 `forge-writing`，以文献证据和大纲推进段落起草。其他 Agent 可直接读取对应技能，遵守相同来源与授权边界。
 
 ## 它能做什么
 
@@ -30,6 +34,8 @@ SciCrucible 是一套**框架**——不是成品知识库，而是帮你**构�
 | 知识库质量下降 | `/forge-health` 全面检查断链/过期/缺口/DOI覆盖率/概念页健康评分 |
 | 写论文 Introduction / Discussion | `/forge-writing` 文献锚定型写作，逐段交互起草 |
 | 构建实验数据库（如烧蚀/氧化） | `/forge-extract` 检索→筛选→下载→提取→结构化 JSON 数据库 |
+
+版本更新见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 本次更新与发布边界
 
@@ -68,7 +74,8 @@ cd SciCrucible
 
 ```bash
 # 下载 PDF 放入暂存区
-cp ~/Downloads/paper.pdf SciCrucible/raw/new-papers/
+mkdir -p raw/new-papers
+cp ~/Downloads/paper.pdf raw/new-papers/
 
 # 在 Claude Code 中打开项目，输入：
 /forge-ingest

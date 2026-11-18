@@ -215,7 +215,9 @@ Fork 后你需要做的：
 3. **检查期刊评级表**：仓库已含 `journal-ratings.xlsx`，如需更新请自行替换
 4. **配置 SciMaster**：运行 `sci init`（如需文献发现功能）
 
-## DOI 全文与补充材料下载使用 `/forge-download`，或由 Agent 读取 `.agents/skills/forge-download/SKILL.md`。安装 HTTP/PDF 依赖：`python -m pip install requests pymupdf`；浏览器功能另需 `python -m pip install playwright`。默认使用本机 Edge；未安装时自行安装 Edge，或按 Playwright 文档配置浏览器。
+## DOI 全文与补充材料下载
+
+使用 `/forge-download`，或由 Agent 读取 `.agents/skills/forge-download/SKILL.md`。安装 HTTP/PDF 依赖：`python -m pip install requests pymupdf`；浏览器功能另需 `python -m pip install playwright`。默认使用本机 Edge；未安装时自行安装 Edge，或按 Playwright 文档配置浏览器。
 
 `python -B scripts/download_papers.py --dois <清单.txt> --dry-run` 仅列计划；`--check` 会联网检查出口与订阅权限，不能与 dry-run 合用。实际下载前确认访问授权。默认正文到 `raw/new-papers/`，日志到 `outputs/downloads/`，SI 单独放入正文目录下的 `SI/`。支持 `--out`、`--state` 自定义路径。
 
@@ -247,4 +249,3 @@ SciCrucible 深度依赖以下项目：
 GNU General Public License v3.0 — 自由使用、修改、分发，但衍生作品必须同样开源。
 
 详见 [LICENSE](./LICENSE)。
-

@@ -1,4 +1,4 @@
-# SciCrucible v2.0.0 — 科学智能知识库
+# SciCrucible v2.0.1 — 科学智能知识库
 
 > 科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
 
@@ -51,7 +51,6 @@ SciCrucible 是科学智能知识库框架，也提供其他 Agent 可读取的�
 
 - 能读取项目技能与执行本地脚本的 Agent；项目技能位于 `.agents/skills/`，Agent 接入方式见 [接入指南](docs/agent-quickstart.md)
 - [SciMaster CLI](https://scimaster.ai)（可选，用于文献发现功能）
-- [scansci-pdf](https://github.com/nick-cn/scansci-pdf)（可选，用于文献下载功能）
 - Python 3.11+
 
 ### 1. 克隆仓库
@@ -65,7 +64,6 @@ cd SciCrucible
 
 详细的安装和配置指南见 **[MANUAL.md](./MANUAL.md)**。核心步骤：
 
-- **Agent MCP 工具**：配置 `scansci-pdf`（文献下载）
 - **SciMaster CLI**：配置 `sci` 命令（文献检索）
 - **期刊评级表**：仓库已包含 `journal-ratings.xlsx`（社区整理的期刊评级参考，非官方数据）
 - **AGENTS.public.md**：将课题名称替换为你自己的研究方向
@@ -215,8 +213,13 @@ Fork 后你需要做的：
 1. **修改 `AGENTS.public.md`**：替换课题名称和研究方向
 2. **修改 `weekly.yaml`**：替换检索关键词
 3. **检查期刊评级表**：仓库已含 `journal-ratings.xlsx`，如需更新请自行替换
-4. **配置 MCP**：在 Agent 环境中启用 `scansci-pdf`
-5. **配置 SciMaster**：运行 `sci init`（如需文献发现功能）
+4. **配置 SciMaster**：运行 `sci init`（如需文献发现功能）
+
+## DOI 全文与补充材料下载使用 `/forge-download`，或由 Agent 读取 `.agents/skills/forge-download/SKILL.md`。安装 HTTP/PDF 依赖：`python -m pip install requests pymupdf`；浏览器功能另需 `python -m pip install playwright`。默认使用本机 Edge；未安装时自行安装 Edge，或按 Playwright 文档配置浏览器。
+
+`python -B scripts/download_papers.py --dois <清单.txt> --dry-run` 仅列计划；`--check` 会联网检查出口与订阅权限，不能与 dry-run 合用。实际下载前确认访问授权。默认正文到 `raw/new-papers/`，日志到 `outputs/downloads/`，SI 单独放入正文目录下的 `SI/`。支持 `--out`、`--state` 自定义路径。
+
+Elsevier 仅从环境变量 `ELSEVIER_API_KEY` 读取密钥，无内嵌回退；Unpaywall 需要 `UNPAYWALL_EMAIL`，未配置时跳过并说明。浏览器会话 `.browser-profile/` 含登录态，必须留在本地。浏览器功能按宿主实际权限审批，不要求放宽整个会话。详细 CLI 与路由见 [下载手册](docs/paper-download.md)。
 
 ## 完整文档
 
@@ -236,7 +239,6 @@ MP客户端可读取显式本地配置中的external_services.materials_project.
 
 SciCrucible 深度依赖以下项目：
 
-- **[scansci-pdf](https://github.com/nick-cn/scansci-pdf)** —— 学术文献智能下载引擎，感谢作者的开源贡献
 - **[SciMaster](https://scimaster.ai)** —— 学术文献检索
 - **[OpenAlex](https://openalex.org/)** · **[Semantic Scholar](https://semanticscholar.org/)** —— 开放学术数据
 
@@ -245,3 +247,4 @@ SciCrucible 深度依赖以下项目：
 GNU General Public License v3.0 — 自由使用、修改、分发，但衍生作品必须同样开源。
 
 详见 [LICENSE](./LICENSE)。
+

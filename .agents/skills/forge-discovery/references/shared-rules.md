@@ -82,12 +82,11 @@ print(f'已写入 {len(dois)} 个 DOI')
 "
 ```
 
-```bash
-# 默认策略：仅合法渠道
-scansci-pdf batch raw/search-results/dois.txt --output D:/科研/SciCrucible/raw/new-papers/ --strategy legal_only
+先由 `/forge-download` 读取 DOI 清单并 dry-run；确认访问授权后执行下载，详见 `docs/paper-download.md`。
 
-# 如果用户传了 --allow-scihub，用 fastest（含 Sci-Hub 兜底）
-scansci-pdf batch raw/search-results/dois.txt --output D:/科研/SciCrucible/raw/new-papers/ --strategy fastest
+```bash
+python -B scripts/download_papers.py --dois raw/search-results/dois.txt --dry-run
+python -B scripts/download_papers.py --dois raw/search-results/dois.txt --out raw/new-papers/ --state outputs/downloads/
 ```
 
 下载完成后：
@@ -166,20 +165,14 @@ print(f'批次状态已保存: {path}')
 | **返回空结果** | **如实报告，这是结论本身**，不伪造 |
 | 额度耗尽 | 显示 `sci usage` + 建议充值，不伪造 |
 | sci search JSON 格式变化 | `.get()` 容错，缺失字段显示 "N/A" |
-| scansci-pdf 版本不兼容 | 捕获异常，提示检查版本 |
+| 下载依赖或凭据缺失 | 按下载手册配置依赖与环境变量，停止该路线并报告 |
 | 下载 PDF 是摘要页 | 检查文件大小（<100KB 可能为摘要），提示用户 |
-| 批量下载中断 | scansci-pdf 支持断点续传，重新运行 batch 即可 |
+| 下载被拦截或无权限 | 停止重复尝试，转用户手动下载或文献传递 |
 | 磁盘空间不足 | 周报中提示磁盘使用情况 |
 | E 编号输入错误 | 验证 E 编号范围，提示有效范围 |
 
 ---
 
-## 版权免责声明
+## 访问范围
 
-⚠️ **Sci-Hub 使用警告**：本工具内置 Sci-Hub 下载能力，但：
-
-- **默认关闭**：所有下载默认使用 `--strategy legal_only`（Elsevier API + WebVPN/CARSI + OpenAlexOA）
-- **用户自主决策**：需用户显式传入 `--allow-scihub` 才启用 Sci-Hub 兜底
-- **仅限个人研究**：下载的论文仅用于个人学术研究，不得再分发
-- **建议优先使用合法渠道**：完善 CARSI / WebVPN / 校园网等机构订阅渠道
-- 使用者应遵守所在机构的电子资源使用协议和当地著作权法
+下载工具仅处理 OA 或用户有权访问的机构来源，不内置绕过付费墙的路线。缺失或拦截如实记录并提供文献传递清单。

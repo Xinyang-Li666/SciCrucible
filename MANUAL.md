@@ -1,4 +1,4 @@
-# SciCrucible v2.0.0 用户手册
+# SciCrucible v2.0.1 用户手册
 
 > 科学智能知识库：从文献摄入—知识分析—科学讨论—学术写作的全闭环。
 
@@ -16,9 +16,10 @@ python --version
 
 不同 Agent 按相同来源与授权契约接入，不需要把项目限定为单一宿主。
 
-按实际操作安装依赖：PDF 解析需要 `pymupdf`，期刊评级表读取需要 `openpyxl`。部分进阶扩展另需 `pdfplumber` 等依赖，不能把缺依赖误报成无数据。SciMaster CLI 与 scansci-pdf 为文献发现/下载的可选集成，配置凭据留在本地，不提交到 Git。已有宿主工具可按授权范围使用，不要求所有用户采用同一模型服务。
 
 根目录包含 README、MANUAL、兼容技能与 scripts；运行时知识分别保存在 `raw/`、`wiki/`、`brainstorming/`、`database/` 等本地目录。它们不随框架发布。课题项目目录与知识库平级，使用 `../projects/<课题>/{data,figures,draft,notes}/`。
+
+期刊评级表需要 `openpyxl`，PDF 解析需要 `pymupdf`；下载依赖见下方专节。SciMaster CLI 为文献发现的可选集成，凭据保存在本地。
 
 ## 配置研究方向
 
@@ -75,3 +76,11 @@ python -B scripts/session_handoff.py check --handoff <交接文件>
 ```
 
 通过后只读取 next_command 所需文件。响应超过 150 次或单次输入超过 150k tokens 时到安全节点交接。代码改动后运行相关检查及全量 unittest，与实际基线比较；发布状态已列出当前限制，不将失败隐藏为通过。
+
+## DOI 全文与补充材料下载
+
+使用 `/forge-download`，或由 Agent 读取 `.agents/skills/forge-download/SKILL.md`。安装 HTTP/PDF 依赖：`python -m pip install requests pymupdf`；浏览器功能另需 `python -m pip install playwright`。默认使用本机 Edge；未安装时自行安装 Edge，或按 Playwright 文档配置浏览器。
+
+`python -B scripts/download_papers.py --dois <清单.txt> --dry-run` 仅列计划；`--check` 会联网检查出口与订阅权限，不能与 dry-run 合用。实际下载前确认访问授权。默认正文到 `raw/new-papers/`，日志到 `outputs/downloads/`，SI 单独放入正文目录下的 `SI/`。支持 `--out`、`--state` 自定义路径。
+
+Elsevier 仅从环境变量 `ELSEVIER_API_KEY` 读取密钥，无内嵌回退；Unpaywall 需要 `UNPAYWALL_EMAIL`，未配置时跳过并说明。浏览器会话 `.browser-profile/` 含登录态，必须留在本地。浏览器功能按宿主实际权限审批，不要求放宽整个会话。详细 CLI 与路由见 [下载手册](docs/paper-download.md)。

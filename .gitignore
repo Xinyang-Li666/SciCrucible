@@ -59,3 +59,6 @@ AGENTS.md
 # OS files
 .DS_Store
 Thumbs.db
+
+# Browser authentication cookies and session state
+.browser-profile/
